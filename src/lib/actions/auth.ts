@@ -18,10 +18,14 @@ export interface AuthResult {
  *
  * 기도제목에는 건강·가정·재정 이야기가 담긴다. 링크를 아는 사람 누구나
  * 가입해서 전부 읽을 수 있으면 안 되므로, 공동체가 공유하는 문구를 한 겹 둔다.
- * 유출이 의심되면 환경변수만 바꾸면 된다.
+ *
+ * 기본값을 두지 않는 이유: 코드에 적힌 문구는 저장소를 보는 사람 모두가 알게 되고,
+ * 그 순간 문이 열린 것과 같다. 환경변수가 없으면 가입 자체를 막는다 —
+ * 실수로 문이 열려 있는 것보다 아무도 못 들어오는 편이 낫다.
  */
-function signupPassphrase(): string {
-  return (process.env.SIGNUP_PASSPHRASE ?? 'SMOC').trim()
+function signupPassphrase(): string | null {
+  const value = process.env.SIGNUP_PASSPHRASE?.trim()
+  return value ? value : null
 }
 
 const emailSchema = z.string().trim().toLowerCase().email('이메일 형식이 올바르지 않습니다.')
@@ -64,8 +68,16 @@ export async function signUpAction(
 
   const input = parsed.data
 
+  const expected = signupPassphrase()
+  if (!expected) {
+    return {
+      ok: false,
+      error: '아직 가입이 열려 있지 않습니다. 관리자에게 문의해 주세요.',
+    }
+  }
+
   // 대소문자는 무시한다. 문구를 옮겨 적다 대문자 하나 틀려서 못 들어오는 일은 없어야 한다.
-  if (input.passphrase.toLowerCase() !== signupPassphrase().toLowerCase()) {
+  if (input.passphrase.toLowerCase() !== expected.toLowerCase()) {
     return { ok: false, error: '가입 문구가 맞지 않습니다. 리더에게 문의해 주세요.' }
   }
 

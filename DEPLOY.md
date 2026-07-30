@@ -38,8 +38,11 @@ Vercel 의 서버리스 함수는 요청마다 새로 깨어나 연결을 연다
 ```
 DATABASE_URL=postgresql://postgres.xxxx:비밀번호@aws-0-리전.pooler.supabase.com:6543/postgres
 SESSION_SECRET=아래에서_만든_긴_무작위_문자열
-SIGNUP_PASSPHRASE=SMOC
+SIGNUP_PASSPHRASE=교인들에게_알려줄_가입_문구
 ```
+
+가입 문구는 코드에 기본값이 없다. 저장소를 보는 사람이 문구를 알아버리면
+가입을 막는 의미가 없어지기 때문이다. 환경변수가 비어 있으면 가입 자체가 막힌다.
 
 `SESSION_SECRET` 은 이렇게 만든다:
 
@@ -102,7 +105,7 @@ gh repo create smoc-prayer --private --source=. --push
 |---|---|
 | `DATABASE_URL` | 1단계의 Transaction pooler 문자열 (비밀번호 채운 것) |
 | `SESSION_SECRET` | `.env.local` 에 넣은 것과 **같은 값** |
-| `SIGNUP_PASSPHRASE` | `SMOC` |
+| `SIGNUP_PASSPHRASE` | 교인들에게 알려줄 가입 문구. **없으면 가입이 아예 막힌다** |
 | `CRON_SECRET` | 또 다른 무작위 문자열 (주간 메일용, 선택) |
 
 `SESSION_SECRET` 은 한 번 정하면 바꾸지 않는다. 바꾸면 모든 사람이 로그아웃된다.
@@ -124,7 +127,7 @@ Vercel 에는 코드만 올라가고, 데이터는 Supabase 에 있으며, 환�
 
 > SMOC 기도의 방을 열었습니다.
 > https://여기에-주소
-> 가입 문구는 **SMOC** 입니다.
+> 가입 문구는 **(설정하신 문구)** 입니다.
 > 이름과 표시 ID를 정하시면 바로 쓰실 수 있어요.
 
 가입 문구를 모르면 가입할 수 없다. 유출이 의심되면 Vercel 에서
