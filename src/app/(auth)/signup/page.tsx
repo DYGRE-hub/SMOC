@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 
 import { SignUpForm } from '@/app/(auth)/signup/SignUpForm'
 import { getCurrentUser } from '@/lib/auth/session'
-import { hasAnyAccount } from '@/lib/auth/bootstrap'
 import { APP_NAME } from '@/lib/env'
 
 export const metadata = { title: '회원가입' }
@@ -11,7 +10,6 @@ export const dynamic = 'force-dynamic'
 
 export default async function SignUpPage() {
   if (await getCurrentUser()) redirect('/')
-  const firstRun = !(await hasAnyAccount())
 
   return (
     <div className="reading-column flex min-h-dvh flex-col py-12">
@@ -26,11 +24,6 @@ export default async function SignUpPage() {
           단톡방에서 묻히던 기도제목을 한곳에 모읍니다. 익명으로 부탁할 수 있고, 응답은 함께
           기억합니다.
         </p>
-        {firstRun ? (
-          <p className="type-caption">
-            첫 번째로 가입하시는 분이 이 방의 관리자가 됩니다.
-          </p>
-        ) : null}
       </header>
 
       <div className="mt-10">
