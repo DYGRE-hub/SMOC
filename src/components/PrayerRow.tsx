@@ -34,16 +34,22 @@ export function PrayerRow({ item }: { item: PrayerWithEngagement }) {
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1">
+        <div className="flex shrink-0 flex-col items-end gap-2">
           <PrayedButton prayerId={prayer.id} engagement={engagement} />
-          <Link
-            href={`/prayers/${prayer.id}`}
-            aria-label={`나눔 ${engagement.commentCount}개 보기`}
-            className="inline-flex h-8 items-center gap-1.5 px-3 text-[13px] text-text-tertiary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text-secondary"
-          >
-            <Icon name="comment" size={16} />
-            <span className="tabular-nums">{engagement.commentCount}</span>
-          </Link>
+          <p className="type-caption flex items-center gap-3">
+            <span className="inline-flex items-center gap-1">
+              <Icon name="hands" size={14} />
+              <span className="tabular-nums">{engagement.total}</span>
+            </span>
+            <Link
+              href={`/prayers/${prayer.id}`}
+              aria-label={`나눔 ${engagement.commentCount}개 보기`}
+              className="inline-flex items-center gap-1 transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text-secondary"
+            >
+              <Icon name="comment" size={14} />
+              <span className="tabular-nums">{engagement.commentCount}</span>
+            </Link>
+          </p>
         </div>
       </div>
     </li>

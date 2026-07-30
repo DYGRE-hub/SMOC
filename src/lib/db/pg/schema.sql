@@ -104,7 +104,7 @@ create table if not exists prayer_engagements (
   prayer_id  text not null references prayers (id) on delete cascade,
   user_id    text not null references accounts (id) on delete cascade,
   kind       text not null check (kind in ('prayed')),
-  -- Asia/Seoul 기준 날짜. 하루 1회 제한을 DB가 강제한다(PRD §4.3).
+  -- 앱 기준 시간대(미국 서부)의 달력 날짜. 하루 1회 제한을 DB가 강제한다(PRD §4.3).
   date_key   date not null,
   created_at timestamptz not null default now(),
   primary key (prayer_id, user_id, kind, date_key)

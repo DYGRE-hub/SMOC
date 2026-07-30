@@ -228,12 +228,5 @@ export function canSee(
   return true
 }
 
-/** 기도 참여 중복 방지 키. Asia/Seoul 기준 하루 1회. */
-export function dateKey(d: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d)
-}
+/** 기도 참여 중복 방지 키. 기준 시간대의 하루 1회(src/lib/timezone.ts). */
+export { dateKey } from '@/lib/timezone'

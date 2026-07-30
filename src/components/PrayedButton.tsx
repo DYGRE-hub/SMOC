@@ -60,24 +60,26 @@ export function PrayedButton({ prayerId, engagement, variant = 'row', disabled }
     )
   }
 
+  // 목록에서 누르는 버튼. 손가락으로 정확히 눌러야 하므로 넉넉하게 잡는다.
+  // 누른 뒤에도 '오늘'을 붙여 두는 이유는, 내일 다시 눌러야 한다는 것을
+  // 버튼 자체가 말해주게 하려는 것이다.
   return (
     <button
       type="button"
       onClick={handleClick}
       disabled={done || disabled || pending}
       aria-pressed={done}
-      aria-label={`${label}. 지금까지 ${optimistic.total}명`}
+      aria-label={`${label}. 지금까지 ${optimistic.total}명이 함께했습니다`}
       className={[
-        'inline-flex items-center gap-1.5 rounded-button px-3 text-[14px]',
+        'flex h-11 w-[104px] shrink-0 items-center justify-center gap-1.5 rounded-button border text-[14px]',
         'transition-colors duration-200 ease-[var(--ease-quiet)]',
-        done ? 'text-accent' : 'text-text-secondary hover:text-text',
+        done
+          ? 'border-accent/40 bg-accent-weak font-medium text-accent'
+          : 'border-accent bg-accent text-white hover:opacity-90',
       ].join(' ')}
     >
       <Icon name={done ? 'check' : 'hands'} size={17} />
-      <span>{done ? '기도함' : '기도'}</span>
-      {optimistic.total > 0 ? (
-        <span className="text-text-tertiary tabular-nums">{optimistic.total}</span>
-      ) : null}
+      <span>{done ? '오늘 기도함' : '기도하기'}</span>
     </button>
   )
 }

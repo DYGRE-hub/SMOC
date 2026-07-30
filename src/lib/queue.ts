@@ -1,4 +1,5 @@
-import { dateKey, type PrayerWithEngagement } from '@/lib/domain/types'
+import type { PrayerWithEngagement } from '@/lib/domain/types'
+import { dateKey, daysUntil } from '@/lib/timezone'
 
 /**
  * PRD §4.3 — 오늘의 기도 큐 랭킹.
@@ -42,7 +43,7 @@ export function scorePrayer(
 
   // 3. 마감 임박 — 남은 날짜가 적을수록 급하게. 지난 것은 결과 확인이 필요하니 약하게 유지.
   if (prayer.prayUntil) {
-    const daysLeft = daysBetween(now, new Date(`${prayer.prayUntil}T00:00:00+09:00`))
+    const daysLeft = daysUntil(prayer.prayUntil, now)
     if (daysLeft >= 0 && daysLeft <= 7) score += (8 - daysLeft) * 6
     else if (daysLeft < 0 && daysLeft >= -3) score += 10
   }

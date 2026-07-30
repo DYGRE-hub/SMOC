@@ -4,7 +4,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { dirname, join } from 'node:path'
 
-import { dateKey, type Prayer, type PrayerUpdate } from '@/lib/domain/types'
+import type { Prayer, PrayerUpdate } from '@/lib/domain/types'
+import { dateKey } from '@/lib/timezone'
 import type { AccountRecord } from '@/lib/db/accounts'
 
 /**

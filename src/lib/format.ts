@@ -1,13 +1,13 @@
-const KST = 'Asia/Seoul'
+import { APP_TIMEZONE, daysUntil } from '@/lib/timezone'
 
 const dateFmt = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: KST,
+  timeZone: APP_TIMEZONE,
   month: 'long',
   day: 'numeric',
 })
 
 const dateTimeFmt = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: KST,
+  timeZone: APP_TIMEZONE,
   month: 'long',
   day: 'numeric',
   hour: 'numeric',
@@ -15,11 +15,17 @@ const dateTimeFmt = new Intl.DateTimeFormat('ko-KR', {
 })
 
 const fullDateFmt = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: KST,
+  timeZone: APP_TIMEZONE,
   year: 'numeric',
   month: 'long',
   day: 'numeric',
   weekday: 'long',
+})
+
+const monthFmt = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: APP_TIMEZONE,
+  year: 'numeric',
+  month: 'long',
 })
 
 export function formatDate(iso: string): string {
@@ -32,6 +38,10 @@ export function formatDateTime(iso: string): string {
 
 export function formatFullDate(d: Date = new Date()): string {
   return fullDateFmt.format(d)
+}
+
+export function formatMonth(iso: string): string {
+  return monthFmt.format(new Date(iso))
 }
 
 /** "방금", "3시간 전", "6일 전", 그 이상은 날짜로 */
@@ -52,9 +62,7 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
  * 지난 날짜는 결과 확인이 필요한 상태이므로 다르게 말한다(PRD §4.1).
  */
 export function prayUntilLabel(dateStr: string, now: Date = new Date()): string {
-  const target = new Date(`${dateStr}T00:00:00+09:00`)
-  const today = new Date(`${new Intl.DateTimeFormat('en-CA', { timeZone: KST }).format(now)}T00:00:00+09:00`)
-  const days = Math.round((target.getTime() - today.getTime()) / 86_400_000)
+  const days = daysUntil(dateStr, now)
 
   if (days === 0) return '오늘까지'
   if (days === 1) return '내일까지'
@@ -64,7 +72,5 @@ export function prayUntilLabel(dateStr: string, now: Date = new Date()): string 
 }
 
 export function isOverdue(dateStr: string, now: Date = new Date()): boolean {
-  const target = new Date(`${dateStr}T00:00:00+09:00`)
-  const today = new Date(`${new Intl.DateTimeFormat('en-CA', { timeZone: KST }).format(now)}T00:00:00+09:00`)
-  return target.getTime() < today.getTime()
+  return daysUntil(dateStr, now) < 0
 }

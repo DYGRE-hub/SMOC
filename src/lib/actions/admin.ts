@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth/session'
 import { getRepository } from '@/lib/db'
 import { parseTranscript } from '@/lib/kakao-parser'
+import { formatDate } from '@/lib/format'
 import {
   AUTHOR_MODES,
   CATEGORIES,
@@ -91,12 +92,7 @@ export async function importTranscriptAction(
 
 function defaultLabel(lastMessageAt: string | null): string {
   if (!lastMessageAt) return '붙여넣은 대화'
-  const formatted = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(lastMessageAt))
-  return `${formatted}까지의 대화`
+  return `${formatDate(lastMessageAt)}까지의 대화`
 }
 
 const decisionSchema = z.object({

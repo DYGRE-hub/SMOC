@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { Icon } from '@/components/ui/Icon'
 import { getCurrentUser } from '@/lib/auth/session'
 import { getRepository } from '@/lib/db'
-import { formatDate } from '@/lib/format'
+import { formatDate, formatMonth } from '@/lib/format'
 import { authorLabel, type PrayerUpdate, type PrayerWithEngagement } from '@/lib/domain/types'
 
 export const metadata = { title: '응답' }
@@ -135,14 +135,9 @@ export default async function AnsweredPage() {
 }
 
 function groupByMonth(entries: AnsweredEntry[]): [string, AnsweredEntry[]][] {
-  const fmt = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: 'long',
-  })
   const map = new Map<string, AnsweredEntry[]>()
   for (const entry of entries) {
-    const key = fmt.format(new Date(entry.item.prayer.updatedAt))
+    const key = formatMonth(entry.item.prayer.updatedAt)
     const bucket = map.get(key)
     if (bucket) bucket.push(entry)
     else map.set(key, [entry])
