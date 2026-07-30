@@ -17,10 +17,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FCFCFA' },
-    { media: '(prefers-color-scheme: dark)', color: '#121211' },
-  ],
+  themeColor: '#FCFCFA',
   width: 'device-width',
   initialScale: 1,
   // 확대를 막지 않는다 — 고령 사용자에게 필요한 마지막 수단이다.

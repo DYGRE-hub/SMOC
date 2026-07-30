@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react'
 
-type Theme = 'system' | 'light' | 'dark'
+type Theme = 'light' | 'dark'
 type TextSize = 's' | 'm' | 'l'
 
 const THEMES: { value: Theme; label: string }[] = [
-  { value: 'system', label: '시스템' },
   { value: 'light', label: '밝게' },
   { value: 'dark', label: '어둡게' },
 ]
@@ -19,19 +18,20 @@ const SIZES: { value: TextSize; label: string }[] = [
 ]
 
 export function AppearanceSettings() {
-  const [theme, setTheme] = useState<Theme>('system')
+  const [theme, setTheme] = useState<Theme>('light')
   const [size, setSize] = useState<TextSize>('s')
 
   useEffect(() => {
     const t = localStorage.getItem('golbang.theme')
-    if (t === 'dark' || t === 'light') setTheme(t)
+    if (t === 'dark') setTheme('dark')
     const s = localStorage.getItem('golbang.textsize')
     if (s === 'm' || s === 'l') setSize(s)
   }, [])
 
   function applyTheme(next: Theme) {
     setTheme(next)
-    if (next === 'system') {
+    // 밝게가 기본이므로 저장하지 않고 속성만 지운다.
+    if (next === 'light') {
       localStorage.removeItem('golbang.theme')
       document.documentElement.removeAttribute('data-theme')
     } else {

@@ -41,21 +41,9 @@
   --c-answered: #7fae9f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --c-bg: #121211;
-    --c-surface: #1b1b19;
-    --c-line: #2a2a27;
-    --c-text: #f2f1ec;
-    --c-text-secondary: #a8a59d;
-    --c-text-tertiary: #6e6b64;
-    --c-accent: #7fae9f;
-    --c-accent-weak: #7fae9f1f;
-    --c-urgent: #d98a74;
-    --c-urgent-weak: #d98a741f;
-    --c-answered: #7fae9f;
-  }
-}
+/* 시스템 다크 모드는 따라가지 않는다.
+   기기 설정이 어두운 사람에게만 앱이 검게 보여 "왜 나만 다르지" 하는 일이 생긴다.
+   기본은 밝게 두고, 어둡게 쓰고 싶은 사람만 설정에서 고른다. */
 
 /* 포커스 모드는 시스템 설정과 무관하게 항상 어둡다(PRD §9.3).
    변수만 국소적으로 덮어써서 하위 트리 전체를 다크로 만든다. */
