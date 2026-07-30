@@ -1,0 +1,16 @@
+# Vercel CLI 로 로컬에서 바로 올릴 때 제외할 것들.
+# 없으면 .gitignore 를 따르지만, Git 을 안 쓰므로 명시해 둔다.
+
+node_modules
+.next
+.data
+.env.local
+.env*.local
+
+# 실명과 건강 정보가 담긴 실제 기도제목 리스트.
+# 데이터는 Supabase 에 있으므로 올릴 이유가 없다.
+scripts/data/*.json
+!scripts/data/example.json
+
+.DS_Store
+*.tsbuildinfo

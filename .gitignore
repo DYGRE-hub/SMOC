@@ -1,0 +1,13 @@
+node_modules
+.next
+.data
+.env.local
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# 실명과 건강 정보가 담긴 실제 기도제목 리스트.
+# 데이터는 Postgres 에 있고, 저장소에는 두지 않는다.
+scripts/data/*.json
+!scripts/data/example.json

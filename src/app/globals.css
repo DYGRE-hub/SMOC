@@ -1,0 +1,252 @@
+/* Pretendard Variable (KR). 네트워크가 없으면 아래 폰트 스택으로 자연히 폴백된다.
+   @import 는 다른 규칙보다 앞서야 하므로 Tailwind 보다 먼저 온다. */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import 'tailwindcss';
+
+/* ──────────────────────────────────────────────────────────────
+   PRD §9.2 디자인 토큰
+   색은 모두 시맨틱 CSS 변수로 두고, 다크 모드는 변수만 교체한다.
+   덕분에 컴포넌트에 dark: 변형을 흩뿌릴 필요가 없다.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+  --c-bg: #fcfcfa;
+  --c-surface: #ffffff;
+  --c-line: #eceae4;
+  --c-text: #1a1917;
+  --c-text-secondary: #6b6862;
+  --c-text-tertiary: #a3a099;
+  --c-accent: #2f5d50;
+  --c-accent-weak: #2f5d5014;
+  --c-urgent: #b4553f;
+  --c-urgent-weak: #b4553f14;
+  --c-answered: #2f5d50;
+
+  /* 본문 글자 크기 3단계 (PRD §9.4). data-textsize 로 교체된다. */
+  --font-size-body: 16px;
+  --line-height-body: 1.75;
+}
+
+:root[data-theme='dark'] {
+  --c-bg: #121211;
+  --c-surface: #1b1b19;
+  --c-line: #2a2a27;
+  --c-text: #f2f1ec;
+  --c-text-secondary: #a8a59d;
+  --c-text-tertiary: #6e6b64;
+  --c-accent: #7fae9f;
+  --c-accent-weak: #7fae9f1f;
+  --c-urgent: #d98a74;
+  --c-urgent-weak: #d98a741f;
+  --c-answered: #7fae9f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --c-bg: #121211;
+    --c-surface: #1b1b19;
+    --c-line: #2a2a27;
+    --c-text: #f2f1ec;
+    --c-text-secondary: #a8a59d;
+    --c-text-tertiary: #6e6b64;
+    --c-accent: #7fae9f;
+    --c-accent-weak: #7fae9f1f;
+    --c-urgent: #d98a74;
+    --c-urgent-weak: #d98a741f;
+    --c-answered: #7fae9f;
+  }
+}
+
+/* 포커스 모드는 시스템 설정과 무관하게 항상 어둡다(PRD §9.3).
+   변수만 국소적으로 덮어써서 하위 트리 전체를 다크로 만든다. */
+.force-dark {
+  --c-bg: #0e0e0d;
+  --c-surface: #141413;
+  --c-line: #242421;
+  --c-text: #f2f1ec;
+  --c-text-secondary: #a8a59d;
+  --c-text-tertiary: #6e6b64;
+  --c-accent: #7fae9f;
+  --c-accent-weak: #7fae9f1f;
+  --c-urgent: #d98a74;
+  --c-urgent-weak: #d98a741f;
+  --c-answered: #7fae9f;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+}
+
+:root[data-textsize='m'] {
+  --font-size-body: 18px;
+}
+:root[data-textsize='l'] {
+  --font-size-body: 20px;
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-line: var(--c-line);
+  --color-text: var(--c-text);
+  --color-text-secondary: var(--c-text-secondary);
+  --color-text-tertiary: var(--c-text-tertiary);
+  --color-accent: var(--c-accent);
+  --color-accent-weak: var(--c-accent-weak);
+  --color-urgent: var(--c-urgent);
+  --color-urgent-weak: var(--c-urgent-weak);
+  --color-answered: var(--c-answered);
+
+  --font-sans:
+    'Pretendard Variable', Pretendard, Inter, -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Segoe UI', system-ui, sans-serif;
+
+  /* PRD §9.2 — 12px 통일, 버튼 10px, 시트 20px */
+  --radius-DEFAULT: 12px;
+  --radius-button: 10px;
+  --radius-sheet: 20px;
+
+  /* 콘텐츠 폭: 데스크톱 최대 680px */
+  --container-reading: 680px;
+
+  --ease-quiet: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  html {
+    /* iOS 사파리에서 가로 스크롤이 생기지 않도록 */
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    font-weight: 400;
+    /* 그림자 없음(PRD §9.2). 경계는 1px 라인과 배경 톤 차이로만. */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 포커스 링은 접근성상 반드시 보이되, 마우스 클릭에는 나타나지 않게 */
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--c-accent-weak);
+  }
+
+  /* PRD §9.4 — 터치 타깃 최소 44×44px.
+     전역으로 강제하면 레이아웃이 예상 밖으로 늘어나므로, 실제 컨트롤은
+     h-11(44px)을 명시적으로 쓰고 이 훅은 예외적인 경우에만 붙인다. */
+  [data-touch-target] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@layer components {
+  /* 타이포 스케일 — PRD §9.2 수치를 그대로 옮긴다. */
+  .type-display {
+    font-size: 32px;
+    line-height: 40px;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+  .type-title {
+    font-size: 22px;
+    line-height: 30px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+  .type-body {
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    font-weight: 400;
+  }
+  .type-caption {
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 400;
+    color: var(--c-text-tertiary);
+  }
+
+  /* 화면 좌우 여백: 모바일 20px, 데스크톱 중앙 정렬 680px */
+  .reading-column {
+    width: 100%;
+    max-width: var(--container-reading);
+    margin-inline: auto;
+    padding-inline: 20px;
+  }
+}
+
+@layer utilities {
+  /* 페이지 전환: 8px 상승 + 페이드. 스프링/바운스 없음. */
+  .enter-rise {
+    animation: rise 220ms var(--ease-quiet) both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .enter-fade {
+    animation: fade 240ms var(--ease-quiet) both;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 가로로 넘기는 칩 줄에서 네이티브 스크롤바를 감춘다.
+     막대 자체가 화면에서 가장 진한 요소가 되어 시선을 가져가기 때문이다.
+     스크롤은 그대로 동작한다. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 스크린 리더 전용 */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/* PRD §9.2 — prefers-reduced-motion 완전 대응 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
