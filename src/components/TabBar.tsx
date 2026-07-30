@@ -34,7 +34,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="주요 화면"
-      className="sticky bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur-sm"
+      className="safe-bottom sticky bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur-sm"
     >
       <ul className="reading-column flex items-stretch justify-between">
         {TABS.map((tab) => {
@@ -45,7 +45,7 @@ export function TabBar() {
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={[
-                  'flex h-16 flex-col items-center justify-center gap-1',
+                  'flex h-16 flex-col items-center justify-center gap-1 active:opacity-60',
                   'transition-colors duration-200 ease-[var(--ease-quiet)]',
                   active ? 'text-text' : 'text-text-tertiary hover:text-text-secondary',
                 ].join(' ')}

@@ -155,7 +155,7 @@ function DraftCard({ item, focused }: { item: Item; focused: boolean }) {
               name="title"
               defaultValue={draft.draftTitle}
               maxLength={120}
-              className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[15px] text-text outline-none focus:border-accent/50"
+              className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[16px] text-text outline-none focus:border-accent/50"
             />
           </div>
 
@@ -168,7 +168,7 @@ function DraftCard({ item, focused }: { item: Item; focused: boolean }) {
               name="body"
               rows={5}
               defaultValue={draft.draftBody}
-              className="w-full resize-y rounded-[12px] border border-line bg-surface p-3 text-[14px] leading-[1.7] text-text outline-none focus:border-accent/50"
+              className="w-full resize-y rounded-[12px] border border-line bg-surface p-3 text-[16px] leading-[1.7] text-text outline-none focus:border-accent/50"
             />
           </div>
 
@@ -209,7 +209,7 @@ function DraftCard({ item, focused }: { item: Item; focused: boolean }) {
                 maxLength={60}
                 aria-label="기도 대상자"
                 placeholder="기도 대상자 이름"
-                className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[14px] text-text outline-none focus:border-accent/50"
+                className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[16px] text-text outline-none focus:border-accent/50"
               />
             ) : (
               <p className="type-caption">
@@ -229,7 +229,7 @@ function DraftCard({ item, focused }: { item: Item; focused: boolean }) {
               type="submit"
               disabled={pending}
               onClick={(e) => setDecision(e.currentTarget, 'approved')}
-              className="h-11 flex-1 rounded-button bg-accent text-[14px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 disabled:opacity-50"
+              className="h-11 flex-1 rounded-button bg-accent text-[14px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75 disabled:opacity-50"
             >
               승인하고 게시
             </button>
@@ -237,7 +237,7 @@ function DraftCard({ item, focused }: { item: Item; focused: boolean }) {
               type="submit"
               disabled={pending}
               onClick={(e) => setDecision(e.currentTarget, 'discarded')}
-              className="h-11 rounded-button border border-line px-4 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text disabled:opacity-50"
+              className="h-11 rounded-button border border-line px-4 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70 disabled:opacity-50"
             >
               폐기
             </button>
@@ -275,7 +275,7 @@ function Select<T extends string>({
         id={id}
         name={name}
         defaultValue={defaultValue}
-        className="h-11 w-full rounded-[10px] border border-line bg-surface px-2.5 text-[14px] text-text outline-none focus:border-accent/50"
+        className="h-11 w-full rounded-[10px] border border-line bg-surface px-2.5 text-[16px] text-text outline-none focus:border-accent/50"
       >
         {options.map(([value, text]) => (
           <option key={value} value={value}>

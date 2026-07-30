@@ -99,6 +99,14 @@
 }
 
 @layer base {
+  /* 아이폰 홈 인디케이터·노치 여백. viewport-fit=cover 와 짝이다. */
+  :root {
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+    /* 헤더 3.5rem + 하단 탭 4rem. 화면 높이를 계산할 때 반복해서 쓴다. */
+    --chrome-height: calc(3.5rem + 4rem + var(--safe-bottom));
+  }
+
   html {
     /* iOS 사파리에서 가로 스크롤이 생기지 않도록 */
     overflow-x: hidden;
@@ -106,6 +114,9 @@
   }
 
   body {
+    /* 탭 하나 누를 때 회색 사각형이 번쩍이는 것을 없앤다.
+       대신 버튼마다 :active 상태를 두어 눌린 느낌은 남긴다. */
+    -webkit-tap-highlight-color: transparent;
     background-color: var(--c-bg);
     color: var(--c-text);
     font-family: var(--font-sans);
@@ -138,6 +149,11 @@
 }
 
 @layer components {
+  /* 하단 고정 요소가 홈 인디케이터에 깔리지 않게 */
+  .safe-bottom {
+    padding-bottom: var(--safe-bottom);
+  }
+
   /* 타이포 스케일 — PRD §9.2 수치를 그대로 옮긴다. */
   .type-display {
     font-size: 32px;

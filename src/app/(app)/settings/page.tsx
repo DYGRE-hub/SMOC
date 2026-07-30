@@ -49,7 +49,7 @@ export default async function SettingsPage() {
         <form action={signOutAction}>
           <button
             type="submit"
-            className="h-12 rounded-button border border-line px-5 text-[15px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
+            className="h-12 rounded-button border border-line px-5 text-[15px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
           >
             로그아웃
           </button>

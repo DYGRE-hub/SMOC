@@ -117,7 +117,7 @@ export function SignUpForm() {
       <button
         type="submit"
         disabled={pending}
-        className="flex h-[52px] items-center justify-center rounded-button bg-accent text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 disabled:opacity-50"
+        className="flex h-[52px] items-center justify-center rounded-button bg-accent text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75 disabled:opacity-50"
       >
         {pending ? '만드는 중…' : '시작하기'}
       </button>

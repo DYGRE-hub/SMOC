@@ -44,7 +44,7 @@ export default async function HomePage() {
   return (
     // 헤더(3.5rem)와 하단 탭(4rem)을 뺀 나머지를 정확히 채운다.
     // 카드 한 장이 화면에 딱 맞아야 스크롤 스냅이 제대로 걸린다.
-    <div className="reading-column enter-rise flex h-[calc(100dvh-3.5rem-4rem)] flex-col">
+    <div className="reading-column enter-rise flex h-[calc(100svh-var(--chrome-height))] flex-col">
       <header className="flex shrink-0 flex-col gap-1 pt-8">
         <p className="type-caption">{formatFullDate()}</p>
         <h1 className="type-display text-text">
@@ -71,7 +71,7 @@ function EmptyToday() {
       </p>
       <Link
         href="/new"
-        className="flex h-[52px] items-center justify-center gap-2 rounded-button bg-accent px-5 text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90"
+        className="flex h-[52px] items-center justify-center gap-2 rounded-button bg-accent px-5 text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75"
       >
         <Icon name="plus" size={18} />
         기도제목 올리기

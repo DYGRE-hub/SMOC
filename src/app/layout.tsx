@@ -20,6 +20,8 @@ export const viewport: Viewport = {
   themeColor: '#FCFCFA',
   width: 'device-width',
   initialScale: 1,
+  // 노치·홈 인디케이터 영역까지 그리고, 여백은 CSS 의 safe-area 로 직접 잡는다.
+  viewportFit: 'cover',
   // 확대를 막지 않는다 — 고령 사용자에게 필요한 마지막 수단이다.
   maximumScale: 5,
 }

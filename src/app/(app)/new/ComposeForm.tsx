@@ -131,7 +131,7 @@ export function ComposeForm({ canChooseGroup }: { canChooseGroup: boolean }) {
                   'transition-colors duration-200 ease-[var(--ease-quiet)]',
                   effective === c
                     ? 'border-accent/40 bg-accent-weak font-medium text-accent'
-                    : 'border-line text-text-secondary hover:text-text',
+                    : 'border-line text-text-secondary hover:text-text active:opacity-70',
                 ].join(' ')}
               >
                 {CATEGORY_LABEL[c]}
@@ -149,7 +149,7 @@ export function ComposeForm({ canChooseGroup }: { canChooseGroup: boolean }) {
           type="date"
           id="prayUntil"
           name="prayUntil"
-          className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[15px] text-text outline-none focus:border-accent/50"
+          className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[16px] text-text outline-none focus:border-accent/50"
         />
         <p className="type-caption">
           수술일, 시험일 같은 날짜를 적어두면 그날 리마인더가 가고, 이후 결과를 여쭙는 알림이
@@ -175,7 +175,7 @@ export function ComposeForm({ canChooseGroup }: { canChooseGroup: boolean }) {
       <button
         type="submit"
         disabled={pending}
-        className="flex h-[52px] items-center justify-center rounded-button bg-accent text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 disabled:opacity-50"
+        className="flex h-[52px] items-center justify-center rounded-button bg-accent text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75 disabled:opacity-50"
       >
         {pending ? '올리는 중…' : '기도 부탁하기'}
       </button>

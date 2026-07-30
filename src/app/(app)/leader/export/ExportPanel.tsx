@@ -50,7 +50,7 @@ export function ExportPanel({
               'h-11 flex-1 text-[14px] transition-colors duration-200 ease-[var(--ease-quiet)]',
               tab === value
                 ? 'bg-accent-weak font-medium text-accent'
-                : 'text-text-secondary hover:text-text',
+                : 'text-text-secondary hover:text-text active:opacity-70',
             ].join(' ')}
           >
             {label}
@@ -65,13 +65,13 @@ export function ExportPanel({
         value={current.text}
         rows={16}
         aria-label="내보낼 텍스트"
-        className="w-full resize-y rounded-[12px] border border-line bg-surface p-4 font-mono text-[13px] leading-[1.7] text-text outline-none"
+        className="w-full resize-y rounded-[12px] border border-line bg-surface p-4 font-mono text-[16px] leading-[1.7] text-text outline-none"
       />
 
       <button
         type="button"
         onClick={copy}
-        className="flex h-[52px] items-center justify-center gap-2 rounded-button bg-accent text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90"
+        className="flex h-[52px] items-center justify-center gap-2 rounded-button bg-accent text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75"
       >
         <Icon name={copied ? 'check' : 'download'} size={18} />
         {copied ? '복사했습니다' : '클립보드에 복사'}

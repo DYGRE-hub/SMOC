@@ -84,7 +84,7 @@ export function CommentSection({ prayerId, updates, currentStatus, canChangeStat
           required
           maxLength={2000}
           placeholder="함께 기도하며 남기고 싶은 말을 적어 주세요."
-          className="w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[15px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
+          className="w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[16px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
         />
         {state?.error ? (
           <p className="type-caption text-urgent" role="alert">
@@ -94,7 +94,7 @@ export function CommentSection({ prayerId, updates, currentStatus, canChangeStat
         <button
           type="submit"
           disabled={pending}
-          className="h-12 self-start rounded-button bg-accent px-5 text-[15px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 disabled:opacity-50"
+          className="h-12 self-start rounded-button bg-accent px-5 text-[15px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75 disabled:opacity-50"
         >
           {pending ? '남기는 중…' : '나눔 남기기'}
         </button>
@@ -147,7 +147,7 @@ function StatusForm({ prayerId, currentStatus }: { prayerId: string; currentStat
               'transition-colors duration-200 ease-[var(--ease-quiet)]',
               status === s
                 ? 'border-accent/40 bg-accent-weak font-medium text-accent'
-                : 'border-line text-text-secondary hover:text-text',
+                : 'border-line text-text-secondary hover:text-text active:opacity-70',
             ].join(' ')}
           >
             {STATUS_LABEL[s]}
@@ -162,7 +162,7 @@ function StatusForm({ prayerId, currentStatus }: { prayerId: string; currentStat
             ? '어떻게 응답되었는지 함께 나눠 주세요.'
             : '상태와 함께 남길 한마디 (선택)'
         }
-        className="w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[15px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
+        className="w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[16px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
       />
       {state?.error ? (
         <p className="type-caption text-urgent" role="alert">
@@ -180,7 +180,7 @@ function StatusForm({ prayerId, currentStatus }: { prayerId: string; currentStat
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="h-12 px-3 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
+          className="h-12 px-3 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
         >
           취소
         </button>

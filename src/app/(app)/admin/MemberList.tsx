@@ -41,7 +41,7 @@ export function MemberList({
                 name="role"
                 defaultValue={member.role}
                 disabled={isSelf}
-                className="h-11 rounded-[10px] border border-line bg-surface px-2.5 text-[14px] text-text outline-none disabled:opacity-50"
+                className="h-11 rounded-[10px] border border-line bg-surface px-2.5 text-[16px] text-text outline-none disabled:opacity-50"
               >
                 {ROLES.filter((r) => r !== 'guest').map((role) => (
                   <option key={role} value={role}>

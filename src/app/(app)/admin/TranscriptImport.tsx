@@ -23,7 +23,7 @@ export function TranscriptImport() {
         rows={10}
         required
         placeholder={`2026년 7월 28일 오후 9:14, 김은혜 : 기도 부탁드립니다\n[김은혜] [오후 9:14] 기도 부탁드립니다\n\n두 형식 모두 알아봅니다.`}
-        className="w-full resize-y rounded-[12px] border border-line bg-surface p-4 font-mono text-[13px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
+        className="w-full resize-y rounded-[12px] border border-line bg-surface p-4 font-mono text-[16px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
       />
 
       <input
@@ -31,7 +31,7 @@ export function TranscriptImport() {
         name="label"
         maxLength={80}
         placeholder="이름표 (선택) — 예: 7월 넷째 주 중보기도방"
-        className="h-11 w-full rounded-[10px] border border-line bg-surface px-3.5 text-[14px] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
+        className="h-11 w-full rounded-[10px] border border-line bg-surface px-3.5 text-[16px] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
       />
 
       {state?.error ? (
@@ -51,7 +51,7 @@ export function TranscriptImport() {
         <button
           type="submit"
           disabled={pending}
-          className="h-12 rounded-button bg-accent px-5 text-[15px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 disabled:opacity-50"
+          className="h-12 rounded-button bg-accent px-5 text-[15px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75 disabled:opacity-50"
         >
           {pending ? '읽는 중…' : '읽어들이기'}
         </button>
@@ -62,7 +62,7 @@ export function TranscriptImport() {
             ref.current.value = SAMPLE
             ref.current.focus()
           }}
-          className="h-12 rounded-button border border-line px-4 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
+          className="h-12 rounded-button border border-line px-4 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
         >
           예시 넣어보기
         </button>

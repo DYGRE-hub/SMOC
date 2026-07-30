@@ -37,7 +37,7 @@ export function DisplayNameForm({ current }: { current: string }) {
         <button
           type="submit"
           disabled={pending || !dirty}
-          className="h-12 rounded-button bg-accent px-5 text-[15px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 disabled:opacity-40"
+          className="h-12 rounded-button bg-accent px-5 text-[15px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75 disabled:opacity-40"
         >
           {pending ? '저장 중…' : '저장'}
         </button>

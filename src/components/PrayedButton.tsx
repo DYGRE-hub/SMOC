@@ -51,7 +51,7 @@ export function PrayedButton({ prayerId, engagement, variant = 'row', disabled }
           'transition-colors duration-200 ease-[var(--ease-quiet)]',
           done
             ? 'bg-accent-weak text-accent'
-            : 'bg-accent text-white hover:opacity-90 disabled:opacity-60',
+            : 'bg-accent text-white hover:opacity-90 active:opacity-75 disabled:opacity-60',
         ].join(' ')}
       >
         <Icon name={done ? 'check' : 'hands'} size={18} />
@@ -75,7 +75,7 @@ export function PrayedButton({ prayerId, engagement, variant = 'row', disabled }
         'transition-colors duration-200 ease-[var(--ease-quiet)]',
         done
           ? 'border-accent/40 bg-accent-weak font-medium text-accent'
-          : 'border-accent bg-accent text-white hover:opacity-90',
+          : 'border-accent bg-accent text-white hover:opacity-90 active:opacity-75',
       ].join(' ')}
     >
       <Icon name={done ? 'check' : 'hands'} size={17} />
