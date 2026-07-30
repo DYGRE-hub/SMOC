@@ -25,6 +25,8 @@ export interface CreatePrayerInput {
   groupId: string | null
   title: string
   body: string
+  /** 기도 대상자. 본인을 위한 기도면 null. */
+  subject: string | null
   category: Category
   urgency: boolean
   visibility: Visibility
@@ -144,10 +146,11 @@ export interface Repository {
     edited: {
       title: string
       body: string
+      /** 대화록에서 온 건은 말한 사람이 곧 기도 대상자다. */
+      subject: string | null
       category: Category
       visibility: Visibility
       authorMode: Prayer['authorMode']
-      authorDisplayName: string | null
     } | null,
     actor: User,
   ): Promise<string | null>

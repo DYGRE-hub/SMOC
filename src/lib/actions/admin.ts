@@ -107,7 +107,7 @@ const decisionSchema = z.object({
   category: z.enum(CATEGORIES).optional(),
   visibility: z.enum(VISIBILITIES).optional(),
   authorMode: z.enum(AUTHOR_MODES).optional(),
-  authorDisplayName: z.string().trim().max(40).optional(),
+  subject: z.string().trim().max(60).optional(),
 })
 
 export async function decideDraftAction(
@@ -125,7 +125,7 @@ export async function decideDraftAction(
     category: formData.get('category') ?? undefined,
     visibility: formData.get('visibility') ?? undefined,
     authorMode: formData.get('authorMode') ?? undefined,
-    authorDisplayName: formData.get('authorDisplayName') ?? undefined,
+    subject: formData.get('subject') ?? undefined,
   })
   if (!parsed.success) return { ok: false, error: '입력을 확인해 주세요.' }
 
@@ -151,7 +151,7 @@ export async function decideDraftAction(
       category: input.category ?? 'church',
       visibility: input.visibility ?? 'public',
       authorMode: input.authorMode ?? 'named',
-      authorDisplayName: input.authorDisplayName || null,
+      subject: input.subject || null,
     },
     user,
   )

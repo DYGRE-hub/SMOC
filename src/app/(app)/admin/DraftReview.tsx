@@ -199,20 +199,21 @@ function DraftCard({ item, focused }: { item: Item; focused: boolean }) {
                 onChange={(e) => setAnonymous(e.target.checked)}
                 className="h-[18px] w-[18px] accent-[var(--c-accent)]"
               />
-              <span className="text-[14px] text-text">익명으로 올리기</span>
+              <span className="text-[14px] text-text">대상자를 밝히지 않고 올리기</span>
             </label>
             <input type="hidden" name="authorMode" value={anonymous ? 'anonymous' : 'named'} />
             {!anonymous ? (
               <input
-                name="authorDisplayName"
+                name="subject"
                 defaultValue={draft.speaker}
-                maxLength={40}
-                aria-label="표시할 작성자 이름"
+                maxLength={60}
+                aria-label="기도 대상자"
+                placeholder="기도 대상자 이름"
                 className="h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[14px] text-text outline-none focus:border-accent/50"
               />
             ) : (
               <p className="type-caption">
-                대화록에서 온 건이라 작성자 계정과는 연결되지 않습니다.
+                대상자 이름 없이 올라갑니다.
               </p>
             )}
           </div>

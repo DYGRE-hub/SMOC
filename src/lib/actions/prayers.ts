@@ -18,6 +18,7 @@ import {
 const createSchema = z.object({
   title: z.string().trim().min(2, '제목을 조금만 더 적어주세요.').max(120),
   body: z.string().trim().min(2, '내용을 조금만 더 적어주세요.').max(4000),
+  subject: z.string().trim().max(60).optional().or(z.literal('')),
   category: z.enum(CATEGORIES).default('church'),
   authorMode: z.enum(AUTHOR_MODES).default('named'),
   visibility: z.enum(VISIBILITIES).default('public'),
@@ -41,6 +42,7 @@ export async function createPrayerAction(
   const parsed = createSchema.safeParse({
     body: formData.get('body'),
     title: formData.get('title'),
+    subject: formData.get('subject') ?? undefined,
     category: formData.get('category') ?? undefined,
     authorMode: formData.get('authorMode') ?? undefined,
     visibility: formData.get('visibility') ?? undefined,
@@ -63,6 +65,7 @@ export async function createPrayerAction(
     groupId: input.visibility === 'group' ? viewer.groupId : null,
     title: input.title,
     body: input.body,
+    subject: input.subject ? input.subject : null,
     category: input.urgency ? 'urgent' : input.category,
     urgency: input.urgency,
     visibility: input.visibility,

@@ -95,8 +95,8 @@ function flatten(churchId) {
         body,
         category: urgent ? 'urgent' : guessCategory(`${item.title}\n${body}`),
         urgency: urgent,
-        // 리스트로 들어온 건이라 앱 계정과 연결하지 않는다. 표시 이름만 남긴다.
-        authorDisplayName: item.author,
+        // 리스트의 '이름' 칸은 올린 사람이 아니라 기도 대상자다.
+        subject: item.author,
         prayUntil,
         sourceRef: list.source,
       })
@@ -138,11 +138,11 @@ async function importToPostgres(url) {
     for (const r of rows) {
       await sql`
         insert into prayers (
-          id, church_id, title, body, category, urgency, visibility,
+          id, church_id, title, body, subject, category, urgency, visibility,
           author_mode, author_display_name, status, pray_until, source, source_ref
         ) values (
-          ${r.id}, ${r.churchId}, ${r.title}, ${r.body}, ${r.category}, ${r.urgency},
-          'public', 'named', ${r.authorDisplayName}, 'active', ${r.prayUntil},
+          ${r.id}, ${r.churchId}, ${r.title}, ${r.body}, ${r.subject}, ${r.category}, ${r.urgency},
+          'public', 'named', ${null}, 'active', ${r.prayUntil},
           'import', ${r.sourceRef}
         )
       `
@@ -208,9 +208,10 @@ function importToFile() {
       category: r.category,
       urgency: r.urgency,
       visibility: 'public',
+      subject: r.subject,
       authorMode: 'named',
       authorIdPublic: null,
-      authorDisplayName: r.authorDisplayName,
+      authorDisplayName: null,
       status: 'active',
       prayUntil: r.prayUntil,
       source: 'import',

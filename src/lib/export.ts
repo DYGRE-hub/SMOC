@@ -1,7 +1,7 @@
 import {
   CATEGORY_LABEL,
   STATUS_LABEL,
-  displayAuthor,
+  authorLabel,
   type PrayerWithEngagement,
 } from '@/lib/domain/types'
 import { formatDate, prayUntilLabel } from '@/lib/format'
@@ -65,10 +65,12 @@ function renderBulletin(items: PrayerWithEngagement[], weekLabel: string): strin
 
   const sections = [...grouped.entries()].map(([category, group]) => {
     const lines = group.map(({ prayer }) => {
-      const who = displayAuthor(prayer.authorMode, prayer.authorDisplayName)
+      // 주보에는 대상자 이름이 먼저다. 없으면 올린 사람으로 대신한다.
+      const who = prayer.subject ?? authorLabel(prayer) ?? ''
       const until = prayer.prayUntil ? ` (${prayUntilLabel(prayer.prayUntil)})` : ''
       const status = prayer.status === 'active' ? '' : ` [${STATUS_LABEL[prayer.status]}]`
-      return `  · ${who} — ${prayer.title}${until}${status}`
+      const name = who ? `${who} — ` : ''
+      return `  · ${name}${prayer.title}${until}${status}`
     })
     return `[${category}]\n${lines.join('\n')}`
   })
@@ -80,9 +82,10 @@ function renderKakao(items: PrayerWithEngagement[], weekLabel: string): string {
   if (items.length === 0) return `${weekLabel} 함께 기도해 주세요\n\n(내보낼 항목이 없습니다)`
 
   const lines = items.map(({ prayer }, i) => {
-    const who = displayAuthor(prayer.authorMode, prayer.authorDisplayName)
+    const who = prayer.subject ?? authorLabel(prayer)
     const until = prayer.prayUntil ? `\n   ~ ${prayUntilLabel(prayer.prayUntil)}` : ''
-    return `${i + 1}. ${prayer.title}\n   ${who} · ${CATEGORY_LABEL[prayer.category]}${until}`
+    const meta = who ? `${who} · ${CATEGORY_LABEL[prayer.category]}` : CATEGORY_LABEL[prayer.category]
+    return `${i + 1}. ${prayer.title}\n   ${meta}${until}`
   })
 
   return [

@@ -13,6 +13,7 @@ import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/domain/types'
 export function ComposeForm({ canChooseGroup }: { canChooseGroup: boolean }) {
   const [state, formAction, pending] = useActionState(createPrayerAction, null)
   const [title, setTitle] = useState('')
+  const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [category, setCategory] = useState<Category | null>(null)
 
@@ -39,6 +40,26 @@ export function ComposeForm({ canChooseGroup }: { canChooseGroup: boolean }) {
       </div>
 
       <div className="flex flex-col gap-2">
+        <label htmlFor="subject" className="type-caption">
+          기도 대상자 (선택)
+        </label>
+        <input
+          id="subject"
+          name="subject"
+          maxLength={60}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="누구를 위한 기도인가요?"
+          className="h-12 w-full rounded-[10px] border border-line bg-surface px-3.5 text-[16px] text-text outline-none transition-colors duration-200 ease-[var(--ease-quiet)] placeholder:text-text-tertiary focus:border-accent/50"
+        />
+        {/* 남의 이름을 올리는 자리라 한 번은 짚고 넘어간다. 기술로 막을 수 없는 부분이다. */}
+        <p className="type-caption">
+          본인을 위한 기도면 비워 두세요. 다른 분의 이름을 적을 때는 그분이 알고 계신지 한 번
+          확인해 주세요.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
         <label htmlFor="body" className="type-caption">
           내용
         </label>
@@ -56,14 +77,14 @@ export function ComposeForm({ canChooseGroup }: { canChooseGroup: boolean }) {
 
       <SegmentedControl
         name="authorMode"
-        legend="이름"
+        legend="내 이름"
         defaultValue="named"
         options={[
-          { value: 'named', label: '이름 밝히기' },
+          { value: 'named', label: '이름 밝히기', hint: '올린 사람으로 표시 ID가 함께 보입니다.' },
           {
             value: 'anonymous',
             label: '익명',
-            hint: '작성자 정보는 분리 보관되어 리더와 관리자도 조회할 수 없습니다.',
+            hint: '올린 사람이 누구인지 남지 않습니다. 리더와 관리자도 조회할 수 없습니다.',
           },
         ]}
       />

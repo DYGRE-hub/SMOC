@@ -182,6 +182,9 @@ create trigger prayers_touch_updated_at
   when (old.* is distinct from new.*)
   execute function touch_updated_at();
 
+-- 기도 대상자 컬럼 (나중에 추가된 것이라 alter 로 붙인다)
+alter table prayers add column if not exists subject text;
+
 -- ─────────────────────────────────────────────────────────────
 -- Supabase 를 쓸 때의 잠금
 --

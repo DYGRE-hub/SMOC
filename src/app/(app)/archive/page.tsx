@@ -5,11 +5,7 @@ import { Icon } from '@/components/ui/Icon'
 import { getCurrentUser } from '@/lib/auth/session'
 import { getRepository } from '@/lib/db'
 import { formatDate } from '@/lib/format'
-import {
-  displayAuthor,
-  type PrayerUpdate,
-  type PrayerWithEngagement,
-} from '@/lib/domain/types'
+import { authorLabel, type PrayerUpdate, type PrayerWithEngagement } from '@/lib/domain/types'
 
 export const metadata = { title: '응답' }
 export const dynamic = 'force-dynamic'
@@ -115,9 +111,9 @@ export default async function AnsweredPage() {
                     )}
 
                     <p className="type-caption flex flex-wrap items-center gap-x-3">
-                      <span>
-                        {displayAuthor(item.prayer.authorMode, item.prayer.authorDisplayName)}
-                      </span>
+                      {item.prayer.subject || authorLabel(item.prayer) ? (
+                        <span>{item.prayer.subject ?? authorLabel(item.prayer)}</span>
+                      ) : null}
                       <span>{item.engagement.total}명이 함께 기도했습니다</span>
                       <Link
                         href={`/prayers/${item.prayer.id}`}

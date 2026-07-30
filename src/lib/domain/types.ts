@@ -106,6 +106,12 @@ export interface Prayer {
   groupId: string | null
   title: string
   body: string
+  /**
+   * 기도 대상자 — 이 기도가 누구를 위한 것인가.
+   * 남을 대신해 올리는 경우가 많아 작성자와 분리한다.
+   * 본인을 위한 기도면 비어 있을 수 있다.
+   */
+  subject: string | null
   category: Category
   urgency: boolean
   visibility: Visibility
@@ -181,6 +187,22 @@ export function toInitials(name: string): string {
     .split(/\s+/)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('.')
+}
+
+/**
+ * 목록·상세에 표시할 '올린 사람'. 보여줄 것이 없으면 null.
+ *
+ * 리스트로 가져온 기도제목에는 올린 사람이 없다(앱 계정과 무관하다).
+ * 그럴 때 displayAuthor 를 그대로 쓰면 '익명' 이 찍히는데, 익명으로 올린 것과
+ * 애초에 올린 사람이 없는 것은 다른 상태다.
+ */
+export function authorLabel(prayer: {
+  authorMode: AuthorMode
+  authorDisplayName: string | null
+}): string | null {
+  if (prayer.authorMode === 'anonymous') return '익명'
+  if (!prayer.authorDisplayName) return null
+  return displayAuthor(prayer.authorMode, prayer.authorDisplayName)
 }
 
 export function isLeader(role: Role): boolean {

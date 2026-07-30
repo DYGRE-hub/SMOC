@@ -218,6 +218,7 @@ export const localRepository: Repository = {
       groupId: input.groupId,
       title: input.title,
       body: input.body,
+      subject: input.subject,
       category: input.category,
       urgency: input.urgency,
       visibility: input.visibility,
@@ -521,14 +522,14 @@ export const localRepository: Repository = {
         groupId: edited.visibility === 'group' ? actor.groupId : null,
         title: edited.title,
         body: edited.body,
+        subject: edited.subject,
         category: edited.category,
         urgency: edited.category === 'urgent',
         visibility: edited.visibility,
         authorMode: edited.authorMode,
-        // 대화록에서 온 건은 앱 계정과 연결되지 않는다. 표시 이름만 남긴다.
+        // 대화록에서 온 건은 앱 계정과 연결되지 않는다. 올린 사람은 비워 둔다.
         authorId: null,
-        authorDisplayName:
-          edited.authorMode === 'anonymous' ? null : edited.authorDisplayName,
+        authorDisplayName: null,
         prayUntil: null,
         source: 'import',
       })

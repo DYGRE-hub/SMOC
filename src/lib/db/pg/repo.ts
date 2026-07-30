@@ -39,6 +39,7 @@ interface PrayerRow {
   group_id: string | null
   title: string
   body: string
+  subject: string | null
   category: string
   urgency: boolean
   visibility: string
@@ -61,6 +62,7 @@ function toPrayer(row: PrayerRow): Prayer {
     groupId: row.group_id,
     title: row.title,
     body: row.body,
+    subject: row.subject,
     category: row.category as Prayer['category'],
     urgency: row.urgency,
     visibility: row.visibility as Prayer['visibility'],
@@ -314,11 +316,12 @@ export const pgRepository: Repository = {
 
     await db`
       insert into prayers (
-        id, church_id, group_id, title, body, category, urgency, visibility,
+        id, church_id, group_id, title, body, subject, category, urgency, visibility,
         author_mode, author_id_public, author_display_name, status, pray_until,
         source, source_ref
       ) values (
         ${id}, ${input.churchId}, ${input.groupId}, ${input.title}, ${input.body},
+        ${input.subject},
         ${input.category}, ${input.urgency}, ${input.visibility}, ${input.authorMode},
         ${anonymous ? null : input.authorId},
         ${anonymous ? null : input.authorDisplayName},
@@ -686,13 +689,14 @@ export const pgRepository: Repository = {
         groupId: edited.visibility === 'group' ? actor.groupId : null,
         title: edited.title,
         body: edited.body,
+        subject: edited.subject,
         category: edited.category,
         urgency: edited.category === 'urgent',
         visibility: edited.visibility,
         authorMode: edited.authorMode,
-        // 대화록에서 온 건은 앱 계정과 연결되지 않는다. 표시 이름만 남긴다.
+        // 대화록에서 온 건은 앱 계정과 연결되지 않는다. 올린 사람은 비워 둔다.
         authorId: null,
-        authorDisplayName: edited.authorMode === 'anonymous' ? null : edited.authorDisplayName,
+        authorDisplayName: null,
         prayUntil: null,
         source: 'import',
       })
