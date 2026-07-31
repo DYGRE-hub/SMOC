@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon'
 import { getCurrentUser } from '@/lib/auth/session'
 import { getRepository } from '@/lib/db'
 import { formatFullDate } from '@/lib/format'
-import { isUrgentNow, type PrayerUpdate } from '@/lib/domain/types'
+import type { PrayerUpdate } from '@/lib/domain/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,10 +27,14 @@ export default async function HomePage() {
   // 홈에서 넘긴 카드와 트래커의 체크 항목이 정확히 같아진다.
   const { mission } = await repo.tracker(viewer)
 
-  // 롤링 순서는 긴급 우선. 응답된 건은 더 이상 긴급으로 세지 않는다.
-  // 둘 다 하루 안에는 바뀌지 않으므로 이 정렬도 하루 내내 그대로다.
+  // 롤링 순서는 올라온 시간의 역순 — 가장 새로 올라온 제목이 첫 장이다.
+  //
+  // 올라온 시각은 하루 안에 바뀌지 않으므로, 기도를 눌러도 카드가 손가락
+  // 밑에서 자리를 바꾸는 일은 없다. 목록 화면과 달리 긴급을 앞으로 당기지
+  // 않는다. 여기서는 방금 올라온 소식을 가장 먼저 만나는 편이 낫다.
   const ordered = [...mission].sort(
-    (a, b) => Number(isUrgentNow(b.prayer)) - Number(isUrgentNow(a.prayer)),
+    (a, b) =>
+      new Date(b.prayer.createdAt).getTime() - new Date(a.prayer.createdAt).getTime(),
   )
 
   // 카드 아래 남는 자리에 최근 나눔을 채운다. 빈 여백보다, 이 제목에

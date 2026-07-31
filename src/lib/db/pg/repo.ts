@@ -663,16 +663,18 @@ export const pgRepository: Repository = {
       .map((id) => byId.get(id))
       .filter((item): item is PrayerWithEngagement => Boolean(item))
 
-    // 오늘 새로 올라온 긴급 요청은 뒤에 덧붙인다. 앞의 자리는 건드리지 않는다.
+    // 오늘 올라온 제목은 뒤에 덧붙인다. 앞의 자리는 건드리지 않는다.
+    //
+    // 예전에는 긴급한 것만 넣었는데, 그러면 오늘 올린 기도가 오늘의 기도에
+    // 보이지 않는 일이 생긴다. 올리고 나서 첫 장에 없으면 올린 사람은
+    // 안 올라간 줄 안다. 미션이 하루치 정원보다 조금 커지는 편이 낫다.
     const included = new Set(mission.map((item) => item.prayer.id))
-    const urgentToday = candidates.filter(
+    const addedToday = candidates.filter(
       ({ prayer }) =>
-        prayer.urgency &&
-        !included.has(prayer.id) &&
-        dateKey(new Date(prayer.createdAt)) === today,
+        !included.has(prayer.id) && dateKey(new Date(prayer.createdAt)) === today,
     )
-    if (urgentToday.length > 0) {
-      mission.push(...urgentToday)
+    if (addedToday.length > 0) {
+      mission.push(...addedToday)
       await db`
         update daily_missions set prayer_ids = ${mission.map((i) => i.prayer.id)}
         where user_id = ${viewer.id} and date_key = ${today}::date

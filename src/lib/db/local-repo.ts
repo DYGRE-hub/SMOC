@@ -81,7 +81,8 @@ function shiftDateKey(days: number): string {
  * 때문에(참여 수가 늘면 '소외 보정' 점수가 내려간다) 매번 다시 계산하면
  * 항목이 눈앞에서 자리를 바꾼다.
  *
- * 다만 오늘 새로 올라온 긴급 요청은 뒤에 덧붙인다.
+ * 다만 오늘 올라온 제목은 뒤에 덧붙인다 — 올린 사람이 오늘의 기도에서
+ * 자기 제목을 못 보면 안 올라간 줄 안다.
  * 이미 있는 항목의 자리는 건드리지 않으므로 순서는 그대로다.
  */
 function resolveMission(
@@ -118,12 +119,11 @@ function resolveMission(
     .filter((item): item is PrayerWithEngagement => Boolean(item))
 
   const included = new Set(mission.map((item) => item.prayer.id))
-  const urgentToday = candidates.filter(
-    ({ prayer }) =>
-      prayer.urgency && !included.has(prayer.id) && dateKey(new Date(prayer.createdAt)) === today,
+  const addedToday = candidates.filter(
+    ({ prayer }) => !included.has(prayer.id) && dateKey(new Date(prayer.createdAt)) === today,
   )
-  if (urgentToday.length > 0) {
-    mission.push(...urgentToday)
+  if (addedToday.length > 0) {
+    mission.push(...addedToday)
     record.prayerIds = mission.map((item) => item.prayer.id)
     persist()
   }
