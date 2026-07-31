@@ -88,13 +88,20 @@ export interface DailyMission {
   prayerIds: string[]
 }
 
+/**
+ * 로컬 저장소에 쌓이는 나눔 레코드.
+ * 도메인 타입(PrayerUpdate)과 달리 작성자 id 를 갖는다 — 권한 판정에 필요하다.
+ * 화면으로 나갈 때는 이 필드를 떼고 editable 만 붙인다.
+ */
+export type StoredUpdate = PrayerUpdate & { authorId?: string | null }
+
 interface StoreState {
   version: number
   sessionSecret: string
   missions: DailyMission[]
   accounts: Account[]
   prayers: Prayer[]
-  updates: PrayerUpdate[]
+  updates: StoredUpdate[]
   engagements: Engagement[]
   revisions: Revision[]
   /** 익명 요청의 실제 작성자. 읽기 함수를 만들지 않는다. */

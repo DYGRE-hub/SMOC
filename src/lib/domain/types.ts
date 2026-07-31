@@ -141,6 +141,16 @@ export interface PrayerUpdate {
   body: string
   authorDisplayName: string | null
   createdAt: string
+  /**
+   * 지금 보는 사람이 이 나눔을 고치거나 지울 수 있는가.
+   *
+   * 작성자 id 를 그대로 내보내지 않는 이유가 있다. 익명으로 올린 기도제목에
+   * 원 작성자가 스스로 단 댓글은 표시 이름이 '익명'인데, id 가 함께 나가면
+   * 그 익명이 깨진다. 그래서 서버가 판정한 결과만 넘긴다.
+   *
+   * 이 값은 버튼을 보일지 말지에만 쓴다. 진짜 권한 검사는 서버 액션에서 다시 한다.
+   */
+  editable?: boolean
 }
 
 export interface EngagementSummary {

@@ -84,6 +84,8 @@ interface UpdateRow {
   prayer_id: string
   type: string
   body: string
+  /** 권한 판정용. toUpdate 를 거치면서 밖으로 나가지 않는다. */
+  author_id?: string | null
   author_display_name: string | null
   created_at: Date
 }
@@ -119,6 +121,17 @@ function visibleClause(viewer: User) {
       or (p.visibility = 'group' and p.group_id is not null and p.group_id = ${viewer.groupId})
     )
   `
+}
+
+/**
+ * 나눔을 고칠 수 있는 사람인가 — 본인이거나 리더 이상.
+ * 상태 변경 권한(setStatusAction)과 같은 규칙을 쓴다.
+ */
+function leaderOrOwner(actor: User) {
+  const db = sql()
+  // 리더·관리자는 모든 나눔을 정리할 수 있으므로 조건을 걸지 않는다.
+  if (isLeader(actor.role)) return db``
+  return db`and author_id = ${actor.id}`
 }
 
 interface EngagementAgg {
@@ -264,7 +277,7 @@ export const pgRepository: Repository = {
 
     const [updateRows, summaries] = await Promise.all([
       db<UpdateRow[]>`
-        select id, prayer_id, type, body, author_display_name, created_at
+        select id, prayer_id, type, body, author_id, author_display_name, created_at
         from prayer_updates where prayer_id = ${id} order by created_at asc
       `,
       summarize([id], viewer),
@@ -289,7 +302,13 @@ export const pgRepository: Repository = {
         viewerPrayedToday: false,
         recentCount: 0,
       },
-      updates: updateRows.map(toUpdate),
+      // author_id 는 여기서만 쓰고 밖으로 나가지 않는다(익명 보호).
+      updates: updateRows.map((row) => ({
+        ...toUpdate(row),
+        editable:
+          row.type === 'comment' &&
+          (isLeader(viewer.role) || row.author_id === viewer.id),
+      })),
     }
   },
 
@@ -407,6 +426,52 @@ export const pgRepository: Repository = {
       targetType: 'prayer',
       targetId: prayerId,
     })
+  },
+
+  async editComment(updateId, body, actor) {
+    const db = sql()
+    // 권한 조건을 UPDATE 의 WHERE 에 함께 건다.
+    // 먼저 조회해서 판정하고 나중에 쓰면 그 사이에 상태가 바뀔 수 있다.
+    const rows = await db<{ id: string; prayer_id: string }[]>`
+      update prayer_updates
+      set body = ${body}
+      where id = ${updateId}
+        and type = 'comment'
+        ${leaderOrOwner(actor)}
+      returning id, prayer_id
+    `
+    if (rows.length === 0) return false
+
+    await pgRepository.writeAudit({
+      actorId: actor.id,
+      action: 'edit_comment',
+      targetType: 'prayer_update',
+      targetId: updateId,
+      meta: { prayerId: rows[0]!.prayer_id },
+    })
+    return true
+  },
+
+  async deleteComment(updateId, actor) {
+    const db = sql()
+    const rows = await db<{ id: string; prayer_id: string }[]>`
+      delete from prayer_updates
+      where id = ${updateId}
+        and type = 'comment'
+        ${leaderOrOwner(actor)}
+      returning id, prayer_id
+    `
+    if (rows.length === 0) return false
+
+    // 지운 사실은 남긴다. 타임라인에서는 사라지지만 기록에는 남아야 한다.
+    await pgRepository.writeAudit({
+      actorId: actor.id,
+      action: 'delete_comment',
+      targetType: 'prayer_update',
+      targetId: updateId,
+      meta: { prayerId: rows[0]!.prayer_id },
+    })
+    return true
   },
 
   async setStatus(prayerId, status, actor, note) {

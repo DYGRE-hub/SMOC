@@ -137,6 +137,60 @@ export async function addUpdateAction(
   return { ok: true }
 }
 
+const editCommentSchema = z.object({
+  updateId: z.string().min(1),
+  body: z.string().trim().min(1, '내용을 입력해 주세요.').max(2000),
+  prayerId: z.string().min(1),
+})
+
+/**
+ * 나눔 수정.
+ *
+ * 화면의 수정 버튼은 서버가 미리 계산해 준 editable 로 그려지지만,
+ * 여기서 권한을 다시 본다. 버튼이 안 보인다고 액션을 못 부르는 것은 아니다.
+ * 실제 판정은 저장소가 UPDATE 조건에 함께 걸어 처리한다.
+ */
+export async function editCommentAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const parsed = editCommentSchema.safeParse({
+    updateId: formData.get('updateId'),
+    body: formData.get('body'),
+    prayerId: formData.get('prayerId'),
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' }
+  }
+
+  const repo = await getRepository()
+  const done = await repo.editComment(parsed.data.updateId, parsed.data.body, user)
+  if (!done) return { ok: false, error: '이 나눔을 고칠 권한이 없습니다.' }
+
+  revalidatePath(`/prayers/${parsed.data.prayerId}`)
+  return { ok: true }
+}
+
+export async function deleteCommentAction(
+  updateId: string,
+  prayerId: string,
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const repo = await getRepository()
+  const done = await repo.deleteComment(updateId, user)
+  if (!done) return { ok: false, error: '이 나눔을 지울 권한이 없습니다.' }
+
+  revalidatePath('/')
+  revalidatePath('/prayers')
+  revalidatePath(`/prayers/${prayerId}`)
+  return { ok: true }
+}
+
 const statusSchema = z.object({
   prayerId: z.string().min(1),
   status: z.enum(STATUSES),

@@ -4,6 +4,7 @@ import {
   canSee,
   dateKey,
   displayAuthor,
+  isLeader,
   STATUS_LABEL,
   type EngagementSummary,
   type Prayer,
@@ -187,7 +188,13 @@ export const localRepository: Repository = {
       engagement: summarize(prayer.id, viewer.id),
       updates: state()
         .updates.filter((u) => u.prayerId === id)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        // authorId 는 여기서 떨어져 나간다. 밖으로 내보내면 익명이 깨진다.
+        .map(({ authorId, ...update }) => ({
+          ...update,
+          editable:
+            update.type === 'comment' && (isLeader(viewer.role) || authorId === viewer.id),
+        })),
     }
   },
 
@@ -297,6 +304,8 @@ export const localRepository: Repository = {
       prayerId,
       type,
       body,
+      // 권한 판정용. 화면으로 나갈 때는 떼어낸다.
+      authorId: actor.id,
       authorDisplayName: name,
       createdAt: new Date().toISOString(),
     })
@@ -309,6 +318,45 @@ export const localRepository: Repository = {
       targetId: prayerId,
     })
     persist()
+  },
+
+  async editComment(updateId, body, actor) {
+    const s = state()
+    const update = s.updates.find((u) => u.id === updateId)
+    // 사람이 쓴 말만 고칠 수 있다. 상태 변경 기록은 손대지 않는다.
+    if (!update || update.type !== 'comment') return false
+    if (!isLeader(actor.role) && update.authorId !== actor.id) return false
+
+    update.body = body
+    await localRepository.writeAudit({
+      actorId: actor.id,
+      action: 'edit_comment',
+      targetType: 'prayer_update',
+      targetId: updateId,
+      meta: { prayerId: update.prayerId },
+    })
+    persist()
+    return true
+  },
+
+  async deleteComment(updateId, actor) {
+    const s = state()
+    const index = s.updates.findIndex((u) => u.id === updateId)
+    const update = s.updates[index]
+    if (index < 0 || !update || update.type !== 'comment') return false
+    if (!isLeader(actor.role) && update.authorId !== actor.id) return false
+
+    s.updates.splice(index, 1)
+    // 타임라인에서는 사라지지만 지운 사실은 기록에 남는다.
+    await localRepository.writeAudit({
+      actorId: actor.id,
+      action: 'delete_comment',
+      targetType: 'prayer_update',
+      targetId: updateId,
+      meta: { prayerId: update.prayerId },
+    })
+    persist()
+    return true
   },
 
   async setStatus(prayerId, status, actor, note) {

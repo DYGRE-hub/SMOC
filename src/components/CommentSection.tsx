@@ -1,9 +1,14 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 
 import { Icon } from '@/components/ui/Icon'
-import { addUpdateAction, setStatusAction } from '@/lib/actions/prayers'
+import {
+  addUpdateAction,
+  deleteCommentAction,
+  editCommentAction,
+  setStatusAction,
+} from '@/lib/actions/prayers'
 import {
   STATUSES,
   STATUS_LABEL,
@@ -50,20 +55,7 @@ export function CommentSection({ prayerId, updates, currentStatus, canChangeStat
       {updates.length > 0 ? (
         <ol className="flex flex-col gap-6">
           {updates.map((update) => (
-            <li key={update.id} className="flex flex-col gap-1.5">
-              <p className="type-caption flex flex-wrap items-center gap-x-2">
-                <span className={update.type === 'answer' ? 'text-answered' : 'text-text-secondary'}>
-                  {update.authorDisplayName ?? '익명'}
-                </span>
-                <time dateTime={update.createdAt}>{formatDateTime(update.createdAt)}</time>
-                {TYPE_LABEL[update.type] ? (
-                  <span className={update.type === 'answer' ? 'text-answered' : undefined}>
-                    · {TYPE_LABEL[update.type]}
-                  </span>
-                ) : null}
-              </p>
-              <p className="type-body whitespace-pre-line text-text">{update.body}</p>
-            </li>
+            <CommentItem key={update.id} update={update} prayerId={prayerId} />
           ))}
         </ol>
       ) : (
@@ -104,6 +96,147 @@ export function CommentSection({ prayerId, updates, currentStatus, canChangeStat
         <StatusForm prayerId={prayerId} currentStatus={currentStatus} />
       ) : null}
     </section>
+  )
+}
+
+/**
+ * 나눔 한 줄. 고칠 수 있는 사람에게만 수정·삭제가 보인다.
+ *
+ * editable 은 서버가 판정해 내려준 값이고, 여기서는 버튼을 그릴지에만 쓴다.
+ * 진짜 권한 검사는 액션 쪽에서 다시 한다.
+ */
+function CommentItem({ update, prayerId }: { update: PrayerUpdate; prayerId: string }) {
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [state, formAction] = useActionState(editCommentAction, null)
+
+  useEffect(() => {
+    if (state?.ok) setEditing(false)
+  }, [state])
+
+  function remove() {
+    startTransition(async () => {
+      const result = await deleteCommentAction(update.id, prayerId)
+      if (!result.ok) {
+        setError(result.error ?? '지우지 못했습니다.')
+        setConfirmingDelete(false)
+      }
+    })
+  }
+
+  const meta = (
+    <p className="type-caption flex flex-wrap items-center gap-x-2">
+      <span className={update.type === 'answer' ? 'text-answered' : 'text-text-secondary'}>
+        {update.authorDisplayName ?? '익명'}
+      </span>
+      <time dateTime={update.createdAt}>{formatDateTime(update.createdAt)}</time>
+      {TYPE_LABEL[update.type] ? (
+        <span className={update.type === 'answer' ? 'text-answered' : undefined}>
+          · {TYPE_LABEL[update.type]}
+        </span>
+      ) : null}
+    </p>
+  )
+
+  if (editing) {
+    return (
+      <li className="flex flex-col gap-2">
+        {meta}
+        <form action={formAction} className="flex flex-col gap-2">
+          <input type="hidden" name="updateId" value={update.id} />
+          <input type="hidden" name="prayerId" value={prayerId} />
+          <label htmlFor={`edit-${update.id}`} className="sr-only">
+            나눔 수정
+          </label>
+          <textarea
+            id={`edit-${update.id}`}
+            name="body"
+            rows={3}
+            required
+            maxLength={2000}
+            defaultValue={update.body}
+            autoFocus
+            className="w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[16px] leading-[1.7] text-text outline-none focus:border-accent/50"
+          />
+          {state?.error ? (
+            <p className="type-caption text-urgent" role="alert">
+              {state.error}
+            </p>
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="h-11 rounded-button bg-accent px-4 text-[14px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75"
+            >
+              저장
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="h-11 px-3 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      </li>
+    )
+  }
+
+  return (
+    <li className="flex flex-col gap-1.5">
+      {meta}
+      <p className="type-body whitespace-pre-line text-text">{update.body}</p>
+
+      {error ? (
+        <p className="type-caption text-urgent" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {update.editable ? (
+        confirmingDelete ? (
+          // 브라우저 확인창을 쓰지 않는다. 모바일에서 잘못 눌러도 되돌릴 수 있게 두 단계.
+          <p className="type-caption flex items-center gap-3">
+            <span>정말 지울까요?</span>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={pending}
+              className="h-9 text-urgent underline-offset-4 hover:underline active:opacity-70 disabled:opacity-50"
+            >
+              지우기
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              className="h-9 underline-offset-4 hover:underline active:opacity-70"
+            >
+              취소
+            </button>
+          </p>
+        ) : (
+          <p className="type-caption flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="h-9 underline-offset-4 hover:underline active:opacity-70"
+            >
+              수정
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="h-9 underline-offset-4 hover:underline active:opacity-70"
+            >
+              삭제
+            </button>
+          </p>
+        )
+      ) : null}
+    </li>
   )
 }
 

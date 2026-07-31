@@ -11,3 +11,6 @@ next-env.d.ts
 # 데이터는 Postgres 에 있고, 저장소에는 두지 않는다.
 scripts/data/*.json
 !scripts/data/example.json
+
+# bkit 플러그인의 로컬 상태. 저장소에 둘 이유가 없다.
+.bkit

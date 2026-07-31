@@ -105,6 +105,17 @@ export interface Repository {
     actor: User,
   ): Promise<void>
 
+  /**
+   * 나눔(댓글) 수정. 본인 글이거나 리더 이상일 때만 통과한다.
+   *
+   * comment 타입만 손댈 수 있다. status_change·answer·edit 은 시스템이 남긴
+   * 기록이라 그대로 둔다 — 특히 answer 는 상태 줄과 한 덩어리라 고치면 어긋난다.
+   *
+   * 권한이 없거나 대상이 아니면 false 를 돌려주고 아무것도 바꾸지 않는다.
+   */
+  editComment(updateId: string, body: string, actor: User): Promise<boolean>
+  deleteComment(updateId: string, actor: User): Promise<boolean>
+
   setStatus(prayerId: string, status: Status, actor: User, note?: string): Promise<void>
 
   /**
