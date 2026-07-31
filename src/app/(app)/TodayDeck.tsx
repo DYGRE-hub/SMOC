@@ -6,7 +6,11 @@ import { useEffect, useRef, useState } from 'react'
 import { MetaLine } from '@/components/PrayerMeta'
 import { PrayedButton, TodayCompanions } from '@/components/PrayedButton'
 import { Icon } from '@/components/ui/Icon'
-import type { PrayerUpdate, PrayerWithEngagement } from '@/lib/domain/types'
+import {
+  isUrgentNow,
+  type PrayerUpdate,
+  type PrayerWithEngagement,
+} from '@/lib/domain/types'
 import { formatDate } from '@/lib/format'
 
 /**
@@ -77,7 +81,7 @@ export function TodayDeck({
             <div className="flex flex-col gap-5">
               <p className="type-caption">
                 {i + 1} / {items.length}
-                {item.prayer.urgency ? ' · 긴급' : ''}
+                {isUrgentNow(item.prayer) ? ' · 긴급' : ''}
               </p>
 
               <Link

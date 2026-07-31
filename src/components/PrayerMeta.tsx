@@ -1,6 +1,12 @@
 import { Icon } from '@/components/ui/Icon'
 import { prayUntilLabel, isOverdue } from '@/lib/format'
-import { authorLabel, CATEGORY_LABEL, STATUS_LABEL, type Prayer } from '@/lib/domain/types'
+import {
+  authorLabel,
+  CATEGORY_LABEL,
+  isUrgentNow,
+  STATUS_LABEL,
+  type Prayer,
+} from '@/lib/domain/types'
 
 /**
  * PRD §9.2 — 화면당 강조 요소는 하나로 제한한다.
@@ -64,7 +70,10 @@ export function MetaLine({
 }) {
   const parts: React.ReactNode[] = []
 
-  if (prayer.urgency) parts.push(<UrgentLabel key="urgent" />)
+  // 응답된 건에는 긴급을 붙이지 않는다. 답이 온 소식과 급하다는 표시가
+  // 한 줄에 나란히 있으면 어느 쪽을 믿어야 할지 알 수 없다.
+  const urgent = isUrgentNow(prayer)
+  if (urgent) parts.push(<UrgentLabel key="urgent" />)
 
   if (prayer.subject) {
     parts.push(
@@ -84,7 +93,9 @@ export function MetaLine({
     )
   }
 
-  // 긴급 건은 카테고리도 '긴급'이라 배지와 겹친다. 한 번만 말한다.
+  // 긴급으로 올리면 카테고리도 '긴급'이 된다. 배지와 겹치니 한 번만 말하고,
+  // 응답되어 배지가 내려간 뒤에도 카테고리만 남겨 두지 않는다 — 이미 답이 온
+  // 기도에 '긴급'이라고 적혀 있으면 읽는 사람이 두 번 헷갈린다.
   if (!(prayer.urgency && prayer.category === 'urgent')) {
     parts.push(<span key="cat">{CATEGORY_LABEL[prayer.category]}</span>)
   }

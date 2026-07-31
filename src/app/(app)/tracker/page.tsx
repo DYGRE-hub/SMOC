@@ -6,6 +6,7 @@ import { StreakStrip } from '@/app/(app)/tracker/StreakStrip'
 import { getCurrentUser } from '@/lib/auth/session'
 import { getRepository } from '@/lib/db'
 import { formatFullDate } from '@/lib/format'
+import { isUrgentNow } from '@/lib/domain/types'
 
 export const metadata = { title: '나의 기도 트래커' }
 export const dynamic = 'force-dynamic'
@@ -58,7 +59,7 @@ export default async function TrackerPage() {
               id: prayer.id,
               title: prayer.title,
               category: prayer.category,
-              urgency: prayer.urgency,
+              urgency: isUrgentNow(prayer),
               prayUntil: prayer.prayUntil,
               prayedToday: engagement.viewerPrayedToday,
             }))}

@@ -3,8 +3,11 @@ import 'server-only'
 import {
   canSee,
   dateKey,
+  DEFAULT_PRAYER_SORT,
   displayAuthor,
   isLeader,
+  isUrgentNow,
+  sortPrayers,
   STATUS_LABEL,
   type EngagementSummary,
   type Prayer,
@@ -63,7 +66,7 @@ function applyFilter(items: PrayerWithEngagement[], filter?: PrayerFilter) {
   }
   if (filter.category) out = out.filter(({ prayer }) => prayer.category === filter.category)
   if (filter.status) out = out.filter(({ prayer }) => prayer.status === filter.status)
-  if (filter.urgentOnly) out = out.filter(({ prayer }) => prayer.urgency)
+  if (filter.urgentOnly) out = out.filter(({ prayer }) => isUrgentNow(prayer))
   return out
 }
 
@@ -160,11 +163,7 @@ export const localRepository: Repository = {
       prayer,
       engagement: summarize(prayer.id, viewer.id),
     }))
-    return applyFilter(items, filter).sort(
-      (a, b) =>
-        Number(b.prayer.urgency) - Number(a.prayer.urgency) ||
-        new Date(b.prayer.updatedAt).getTime() - new Date(a.prayer.updatedAt).getTime(),
-    )
+    return sortPrayers(applyFilter(items, filter), filter?.sort ?? DEFAULT_PRAYER_SORT)
   },
 
   async getPrayer(viewer, id): Promise<PrayerDetail | null> {

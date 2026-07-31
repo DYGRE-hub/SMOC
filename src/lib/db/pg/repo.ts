@@ -4,12 +4,16 @@ import { randomUUID } from 'node:crypto'
 
 import {
   dateKey,
+  DEFAULT_PRAYER_SORT,
   displayAuthor,
   isLeader,
+  isUrgentNow,
+  sortPrayers,
   STATUS_LABEL,
   type EngagementSummary,
   type Prayer,
   type PrayerUpdate,
+  type PrayerSort,
   type PrayerWithEngagement,
   type User,
 } from '@/lib/domain/types'
@@ -121,6 +125,35 @@ function visibleClause(viewer: User) {
       or (p.visibility = 'group' and p.group_id is not null and p.group_id = ${viewer.groupId})
     )
   `
+}
+
+/** isUrgentNow() 의 SQL 판. 응답된 건은 더 이상 긴급이 아니다. */
+function urgentNowClause() {
+  const db = sql()
+  return db`(p.urgency and p.status <> 'answered')`
+}
+
+/**
+ * 긴급 아래의 순서.
+ *
+ * 정렬 키를 문자열로 이어 붙이지 않고 갈래마다 조각을 따로 둔다.
+ * 목록 정렬은 사용자가 주는 값으로 정해지는 자리라, 문자열이 SQL 로
+ * 흘러 들어갈 틈을 아예 만들지 않는다.
+ */
+function secondaryOrder(sort: PrayerSort) {
+  const db = sql()
+  switch (sort) {
+    case 'created':
+      return db`p.created_at desc`
+    case 'waiting':
+      return db`p.created_at asc`
+    // 'least' 는 여기서 정하지 못한다. 일단 최근 소식순으로 받아 두고
+    // 함께 기도한 수가 붙은 뒤에 다시 세운다.
+    case 'least':
+    case 'updated':
+    default:
+      return db`p.updated_at desc`
+  }
 }
 
 /**
@@ -263,17 +296,21 @@ export const pgRepository: Repository = {
   async listPrayers(viewer, filter?: PrayerFilter) {
     const db = sql()
     const q = filter?.q?.trim()
+    const sort = filter?.sort ?? DEFAULT_PRAYER_SORT
 
     const rows = await db<PrayerRow[]>`
       select p.* from prayers p
       where ${visibleClause(viewer)}
         ${filter?.category ? db`and p.category = ${filter.category}` : db``}
         ${filter?.status ? db`and p.status = ${filter.status}` : db``}
-        ${filter?.urgentOnly ? db`and p.urgency = true` : db``}
+        ${filter?.urgentOnly ? db`and ${urgentNowClause()}` : db``}
         ${q ? db`and (p.title ilike ${`%${q}%`} or p.body ilike ${`%${q}%`})` : db``}
-      order by p.urgency desc, p.updated_at desc
+      order by ${urgentNowClause()} desc, ${secondaryOrder(sort)}
     `
-    return hydrate(rows, viewer)
+    const items = await hydrate(rows, viewer)
+    // '덜 기도한 순'만 SQL 로 못 세운다. 함께 기도한 수는 오늘 기준으로
+    // 따로 집계해 붙이는 값이라, 목록을 채운 뒤에 다시 줄을 세운다.
+    return sort === 'least' ? sortPrayers(items, 'least') : items
   },
 
   async getPrayer(viewer, id): Promise<PrayerDetail | null> {

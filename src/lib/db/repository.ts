@@ -2,6 +2,7 @@ import type {
   Category,
   EngagementSummary,
   Prayer,
+  PrayerSort,
   PrayerUpdate,
   PrayerWithEngagement,
   Role,
@@ -16,8 +17,14 @@ export interface PrayerFilter {
   q?: string
   category?: Category | null
   status?: Status | null
-  /** 긴급만 보기 */
+  /** 긴급만 보기. 응답된 건은 더 이상 긴급으로 세지 않는다. */
   urgentOnly?: boolean
+  /**
+   * 긴급 아래의 순서. 기본은 'updated'.
+   * 긴급을 맨 위로 올리는 규칙 자체는 고를 수 없다 — 급한 건이 묻히면
+   * 목록을 정렬하는 의미가 없다.
+   */
+  sort?: PrayerSort
 }
 
 export interface CreatePrayerInput {

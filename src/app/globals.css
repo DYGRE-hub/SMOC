@@ -103,8 +103,9 @@
   :root {
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
-    /* 헤더 3.5rem + 하단 탭 4rem. 화면 높이를 계산할 때 반복해서 쓴다. */
-    --chrome-height: calc(3.5rem + 4rem + var(--safe-bottom));
+    /* 헤더 3.5rem + 하단 탭 4rem. 화면 높이를 계산할 때 반복해서 쓴다.
+       둘 다 화면에 붙어 있으므로 노치·홈 인디케이터 여백까지 함께 뺀다. */
+    --chrome-height: calc(3.5rem + 4rem + var(--safe-top) + var(--safe-bottom));
   }
 
   html {
@@ -152,6 +153,11 @@
   /* 하단 고정 요소가 홈 인디케이터에 깔리지 않게 */
   .safe-bottom {
     padding-bottom: var(--safe-bottom);
+  }
+
+  /* 상단 고정 요소가 노치·상태바에 깔리지 않게 */
+  .safe-top {
+    padding-top: var(--safe-top);
   }
 
   /* 타이포 스케일 — PRD §9.2 수치를 그대로 옮긴다. */

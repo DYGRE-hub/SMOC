@@ -7,9 +7,13 @@ import { Icon } from '@/components/ui/Icon'
 import {
   CATEGORIES,
   CATEGORY_LABEL,
+  DEFAULT_PRAYER_SORT,
+  PRAYER_SORT_LABEL,
+  PRAYER_SORTS,
   STATUS_LABEL,
   STATUSES,
   type Category,
+  type PrayerSort,
   type Status,
 } from '@/lib/domain/types'
 
@@ -18,13 +22,14 @@ interface Props {
   category: Category | null
   status: Status | null
   urgentOnly: boolean
+  sort: PrayerSort
 }
 
 /**
  * 검색·필터는 URL 에 실린다.
  * 리더가 특정 조건의 목록을 그대로 링크로 공유할 수 있어야 하기 때문이다.
  */
-export function PrayerFilters({ initialQuery, category, status, urgentOnly }: Props) {
+export function PrayerFilters({ initialQuery, category, status, urgentOnly, sort }: Props) {
   const router = useRouter()
   const params = useSearchParams()
   const [query, setQuery] = useState(initialQuery)
@@ -64,6 +69,29 @@ export function PrayerFilters({ initialQuery, category, status, urgentOnly }: Pr
           aria-label="기도제목 검색"
           className="h-full w-full bg-transparent text-[15px] text-text outline-none placeholder:text-text-tertiary"
         />
+      </div>
+
+      {/*
+        정렬은 필터 칩과 나란히 두지 않는다. 칩은 '무엇을 볼지'를 고르는 자리고
+        정렬은 '어떤 순서로 볼지'라, 같은 줄에 있으면 눌러 보기 전에는 구분되지 않는다.
+      */}
+      <div className="flex items-center gap-2">
+        <label htmlFor="sort" className="type-caption shrink-0">
+          정렬
+        </label>
+        <select
+          id="sort"
+          value={sort}
+          onChange={(e) => push({ sort: e.target.value === DEFAULT_PRAYER_SORT ? null : e.target.value })}
+          className="h-11 rounded-[10px] border border-line bg-surface px-3 text-[15px] text-text outline-none transition-colors duration-200 ease-[var(--ease-quiet)] focus:border-accent/50"
+        >
+          {PRAYER_SORTS.map((s) => (
+            <option key={s} value={s}>
+              {PRAYER_SORT_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <p className="type-caption">긴급은 항상 맨 위</p>
       </div>
 
       <div className="no-scrollbar -mx-5 overflow-x-auto px-5">

@@ -6,7 +6,15 @@ import { PrayerFilters } from '@/app/(app)/prayers/PrayerFilters'
 import { Icon } from '@/components/ui/Icon'
 import { getCurrentUser } from '@/lib/auth/session'
 import { getRepository } from '@/lib/db'
-import { CATEGORIES, STATUSES, type Category, type Status } from '@/lib/domain/types'
+import {
+  CATEGORIES,
+  DEFAULT_PRAYER_SORT,
+  PRAYER_SORTS,
+  STATUSES,
+  type Category,
+  type PrayerSort,
+  type Status,
+} from '@/lib/domain/types'
 
 export const metadata = { title: '기도제목' }
 export const dynamic = 'force-dynamic'
@@ -16,6 +24,7 @@ interface SearchParams {
   category?: string
   status?: string
   urgent?: string
+  sort?: string
 }
 
 export default async function PrayersPage({
@@ -31,6 +40,10 @@ export default async function PrayersPage({
     ? (params.category as Category)
     : null
   const status = STATUSES.includes(params.status as Status) ? (params.status as Status) : null
+  // 모르는 값이 오면 조용히 기본값으로 돌린다. 목록이 비어 보이는 것보다 낫다.
+  const sort: PrayerSort = PRAYER_SORTS.includes(params.sort as PrayerSort)
+    ? (params.sort as PrayerSort)
+    : DEFAULT_PRAYER_SORT
 
   const repo = await getRepository()
   const items = await repo.listPrayers(viewer, {
@@ -38,6 +51,7 @@ export default async function PrayersPage({
     category,
     status,
     urgentOnly: params.urgent === '1',
+    sort,
   })
 
   return (
@@ -60,6 +74,7 @@ export default async function PrayersPage({
           category={category}
           status={status}
           urgentOnly={params.urgent === '1'}
+          sort={sort}
         />
       </div>
 

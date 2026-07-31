@@ -220,6 +220,69 @@ export function isLeader(role: Role): boolean {
 }
 
 /**
+ * 지금도 긴급한가.
+ *
+ * 응답된 기도는 급하지 않다. 답이 온 건을 계속 맨 위에 붙들어 두면
+ * 아직 기다리는 사람들이 그만큼 뒤로 밀린다. 긴급 표시를 지우는 게 아니라
+ * (올릴 때의 사정은 사실 그대로 남는다) 목록에서 앞자리를 내려놓는 것이다.
+ *
+ * 종료·보류는 그대로 둔다. 답이 왔다는 소식만이 자리를 비켜 줄 이유가 된다.
+ */
+export function isUrgentNow(prayer: { urgency: boolean; status: Status }): boolean {
+  return prayer.urgency && prayer.status !== 'answered'
+}
+
+/** 목록 정렬. 긴급을 맨 위로 올리는 규칙은 고정이고, 그 아래 순서만 고른다. */
+export const PRAYER_SORTS = ['updated', 'created', 'waiting', 'least'] as const
+export type PrayerSort = (typeof PRAYER_SORTS)[number]
+
+export const PRAYER_SORT_LABEL: Record<PrayerSort, string> = {
+  updated: '최근 소식순',
+  created: '올라온 순',
+  waiting: '오래 기다린 순',
+  least: '덜 기도한 순',
+}
+
+export const DEFAULT_PRAYER_SORT: PrayerSort = 'updated'
+
+/**
+ * 목록 정렬. 어떤 기준을 고르든 긴급이 먼저다.
+ *
+ * '덜 기도한 순'은 아직 아무도 함께하지 못한 제목을 앞으로 올린다.
+ * 목록이 길어지면 위쪽 몇 개만 기도받고 아래는 매주 그대로 남는데,
+ * 그걸 뒤집어 볼 수 있어야 빠지는 사람이 없다.
+ */
+export function sortPrayers<T extends PrayerWithEngagement>(
+  items: readonly T[],
+  sort: PrayerSort,
+): T[] {
+  const byUrgency = (a: T, b: T) =>
+    Number(isUrgentNow(b.prayer)) - Number(isUrgentNow(a.prayer))
+  const time = (value: string) => new Date(value).getTime()
+
+  return [...items].sort((a, b) => {
+    const urgent = byUrgency(a, b)
+    if (urgent !== 0) return urgent
+
+    switch (sort) {
+      case 'created':
+        return time(b.prayer.createdAt) - time(a.prayer.createdAt)
+      case 'waiting':
+        return time(a.prayer.createdAt) - time(b.prayer.createdAt)
+      case 'least':
+        // 함께한 수가 같으면 오래 기다린 쪽을 먼저 본다.
+        return (
+          a.engagement.total - b.engagement.total ||
+          time(a.prayer.createdAt) - time(b.prayer.createdAt)
+        )
+      case 'updated':
+      default:
+        return time(b.prayer.updatedAt) - time(a.prayer.updatedAt)
+    }
+  })
+}
+
+/**
  * PRD §3 권한표의 열람 규칙.
  * 게스트는 링크로 작성만 할 수 있고 어떤 제목도 열람하지 못한다.
  * 'group' 은 같은 셀에 속한 중보자에게만 보인다.
