@@ -19,6 +19,7 @@ export function PrayerRow({ item }: { item: PrayerWithEngagement }) {
       <div className="flex items-start gap-4 py-5">
         <div className="min-w-0 flex-1">
           <Link
+            prefetch={false}
             href={`/prayers/${prayer.id}`}
             className="block text-[17px] font-medium leading-[1.5] tracking-[-0.01em] text-text transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-70"
           >
@@ -42,6 +43,7 @@ export function PrayerRow({ item }: { item: PrayerWithEngagement }) {
               <span className="tabular-nums">{engagement.total}</span>
             </span>
             <Link
+              prefetch={false}
               href={`/prayers/${prayer.id}`}
               aria-label={`나눔 ${engagement.commentCount}개 보기`}
               className="inline-flex items-center gap-1 transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text-secondary"

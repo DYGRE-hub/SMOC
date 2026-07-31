@@ -89,6 +89,7 @@ export default async function AnsweredPage() {
                     </p>
 
                     <Link
+                      prefetch={false}
                       href={`/prayers/${item.prayer.id}`}
                       className="type-title text-text transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-70"
                     >
@@ -116,6 +117,7 @@ export default async function AnsweredPage() {
                       ) : null}
                       <span>{item.engagement.total}명이 함께 기도했습니다</span>
                       <Link
+                        prefetch={false}
                         href={`/prayers/${item.prayer.id}`}
                         className="inline-flex items-center gap-1.5 text-accent underline-offset-4 hover:underline"
                       >

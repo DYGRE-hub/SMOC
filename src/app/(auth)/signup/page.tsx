@@ -32,7 +32,7 @@ export default async function SignUpPage() {
 
       <p className="type-caption mt-8">
         이미 계정이 있으신가요?{' '}
-        <Link href="/login" className="text-accent underline-offset-4 hover:underline">
+        <Link prefetch={false} href="/login" className="text-accent underline-offset-4 hover:underline">
           로그인
         </Link>
       </p>

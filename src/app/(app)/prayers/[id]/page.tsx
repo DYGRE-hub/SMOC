@@ -35,6 +35,7 @@ export default async function PrayerDetailPage({
 
       <div className="flex items-center justify-between">
         <Link
+          prefetch={false}
           href="/prayers"
           className="inline-flex h-11 items-center gap-1.5 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
         >
@@ -45,6 +46,7 @@ export default async function PrayerDetailPage({
         {/* 수정 권한과 상태 변경 권한은 같은 규칙이다 — 본인 건이거나 리더 이상. */}
         {canChangeStatus ? (
           <Link
+            prefetch={false}
             href={`/prayers/${prayer.id}/edit`}
             className="inline-flex h-11 items-center text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
           >

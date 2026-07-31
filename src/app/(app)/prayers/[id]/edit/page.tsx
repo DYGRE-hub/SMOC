@@ -38,6 +38,7 @@ export default async function EditPrayerPage({
   return (
     <div className="reading-column enter-rise py-6">
       <Link
+        prefetch={false}
         href={`/prayers/${id}`}
         className="inline-flex h-11 items-center gap-1.5 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
       >

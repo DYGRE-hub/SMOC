@@ -45,6 +45,7 @@ export default async function PrayersPage({
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="type-title text-text">기도제목</h1>
         <Link
+          prefetch={false}
           href="/new"
           className="inline-flex h-11 items-center gap-1.5 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
         >

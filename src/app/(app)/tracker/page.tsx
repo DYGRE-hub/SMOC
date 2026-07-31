@@ -66,7 +66,7 @@ export default async function TrackerPage() {
         ) : (
           <p className="type-body mt-6 text-text-secondary">
             아직 기도할 제목이 없습니다.{' '}
-            <Link href="/new" className="text-accent underline-offset-4 hover:underline">
+            <Link prefetch={false} href="/new" className="text-accent underline-offset-4 hover:underline">
               첫 제목을 올려 주세요
             </Link>
             .

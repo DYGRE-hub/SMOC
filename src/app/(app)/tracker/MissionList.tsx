@@ -74,6 +74,7 @@ function MissionRow({ item }: { item: MissionItem }) {
 
         <div className="min-w-0 flex-1 pt-[10px]">
           <Link
+            prefetch={false}
             href={`/prayers/${item.id}`}
             className={[
               'block text-[16px] leading-[1.5] tracking-[-0.01em]',

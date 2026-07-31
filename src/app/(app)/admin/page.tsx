@@ -32,6 +32,7 @@ export default async function AdminPage() {
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="type-title text-text">관리</h1>
         <Link
+          prefetch={false}
           href="/leader/export"
           className="flex h-11 items-center text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
         >

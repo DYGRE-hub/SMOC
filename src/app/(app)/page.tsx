@@ -70,6 +70,7 @@ function EmptyToday() {
         첫 번째 제목을 올려 주시겠어요?
       </p>
       <Link
+        prefetch={false}
         href="/new"
         className="flex h-[52px] items-center justify-center gap-2 rounded-button bg-accent px-5 text-[16px] font-medium text-white transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-90 active:opacity-75"
       >

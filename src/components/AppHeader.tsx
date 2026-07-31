@@ -13,6 +13,7 @@ export function AppHeader({ user }: { user: User }) {
     <header className="border-b border-line">
       <div className="reading-column flex h-14 items-center justify-between">
         <Link
+          prefetch={false}
           href="/"
           className="text-[17px] font-semibold tracking-[-0.01em] text-text"
           aria-label={`${APP_NAME} 홈`}
@@ -25,6 +26,7 @@ export function AppHeader({ user }: { user: User }) {
           {/* 관리 화면은 관리자로 지정된 사용자에게만 보인다. */}
           {user.role === 'admin' ? <HeaderLink href="/admin">관리</HeaderLink> : null}
           <Link
+            prefetch={false}
             href="/settings"
             aria-label="설정"
             className="flex h-11 w-11 items-center justify-center rounded-button text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
@@ -40,6 +42,7 @@ export function AppHeader({ user }: { user: User }) {
 function HeaderLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
+      prefetch={false}
       href={href}
       className="flex h-11 items-center rounded-button px-3 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
     >

@@ -24,7 +24,7 @@ export default async function LoginPage() {
 
       <p className="type-caption mt-8">
         처음 오셨다면 회원가입 후 로그인해 주십시오.{' '}
-        <Link href="/signup" className="text-accent underline-offset-4 hover:underline">
+        <Link prefetch={false} href="/signup" className="text-accent underline-offset-4 hover:underline">
           회원가입
         </Link>
       </p>

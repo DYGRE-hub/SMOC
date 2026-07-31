@@ -81,6 +81,7 @@ export function TodayDeck({
               </p>
 
               <Link
+                prefetch={false}
                 href={`/prayers/${item.prayer.id}`}
                 className="type-title text-text transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-70"
               >
@@ -112,6 +113,7 @@ export function TodayDeck({
               />
               <div className="flex items-center justify-between">
                 <Link
+                  prefetch={false}
                   href={`/prayers/${item.prayer.id}`}
                   className="type-caption inline-flex h-11 items-center gap-1.5 underline-offset-4 hover:underline"
                 >
@@ -130,6 +132,7 @@ export function TodayDeck({
                   </button>
                 ) : (
                   <Link
+                    prefetch={false}
                     href="/prayers"
                     className="type-caption inline-flex h-11 items-center underline-offset-4 hover:underline"
                   >
@@ -198,6 +201,7 @@ function RecentComments({
         ))}
       </ol>
       <Link
+        prefetch={false}
         href={`/prayers/${prayerId}`}
         className="type-caption self-start underline-offset-4 hover:underline"
       >
