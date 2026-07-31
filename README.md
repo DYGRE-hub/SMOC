@@ -2,18 +2,25 @@
 
 > 함께 기도하는 조용한 방 — 흘러가는 기도제목을 남는 기록으로.
 
+**운영 중**: https://smoc-prayer.vercel.app (Vercel + Supabase)
+배포와 운영은 [DEPLOY.md](./DEPLOY.md) 를 보세요.
+
 ## 실행
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+cp .env.example .env.local   # DATABASE_URL, SESSION_SECRET, SIGNUP_PASSPHRASE
+npm run dev                  # http://localhost:3000
 ```
 
-처음 뜨면 아무 계정도 없습니다. `/signup` 에서 **첫 번째로 가입하는 사람이 관리자**가
-되고, 이후 가입자는 중보자로 시작합니다. 역할은 관리 화면에서 바꿉니다.
+`DATABASE_URL` 이 있으면 Postgres, 없으면 `.data/golbang.json` 파일 저장소로 뜹니다.
+파일 저장소는 개발용입니다 — 서버리스에서는 인스턴스마다 초기화되므로 배포에는 쓸 수 없습니다.
 
-데이터는 `.data/golbang.json` 에 저장되므로 서버를 재시작해도 계정과 기도제목이
-남습니다. 처음부터 다시 시작하려면 이 폴더를 지우세요.
+가입에는 `SIGNUP_PASSPHRASE` 문구가 필요합니다. **환경변수가 비어 있으면 가입이 아예 막힙니다** —
+코드에 기본값을 두지 않습니다. 저장소를 보는 사람이 문구를 알아버리면 막는 의미가 없기 때문입니다.
+
+계정이 하나도 없을 때 **첫 번째로 가입하는 사람이 관리자**가 되고, 이후 가입자는 중보자로
+시작합니다. 역할은 관리 화면에서 바꿉니다.
 
 ## 화면
 
@@ -50,11 +57,26 @@ npm run dev      # http://localhost:3000
 
 ## 익명성과 권한
 
-익명으로 올린 요청의 실제 작성자는 분리 보관되며, 애플리케이션에 조회 경로가
-없습니다. 목표 스키마(`supabase/migrations/0002_rls.sql`)에서는 이 테이블에
-**SELECT 정책 자체를 만들지 않아** DB 차원에서도 읽히지 않게 했고, 복호화는
-관리자 2인과 사유를 요구하며 감사 로그를 남기는 `reveal_anonymous_author()` 로만
-가능합니다(기본 실행 권한 없음).
+익명으로 올린 요청의 실제 작성자는 `prayer_author_private` 에 분리 보관됩니다.
+
+**지금 보장되는 것**
+
+- 앱에 이 테이블을 **읽는 코드가 없습니다.** 목록·상세·검수 어느 경로에서도 조회하지 않습니다.
+- 기도제목 행에는 익명일 때 작성자가 `NULL` 로만 남고, DB 제약(`anonymous_has_no_public_author`)이
+  이를 강제합니다.
+- Supabase 의 REST API 는 잠겨 있습니다. 모든 테이블에 RLS 를 켜고
+  `anon`·`authenticated` 권한을 회수했으므로 공개 키로는 한 행도 나가지 않습니다.
+- 나눔에도 작성자 id 를 클라이언트로 내보내지 않습니다. 서버가 판정한 `editable` 만 내려갑니다.
+
+**아직 보장되지 않는 것**
+
+- 값이 **암호화되어 있지 않습니다.** 컬럼 이름은 `author_id_encrypted` 지만 평문입니다.
+  DB 에 직접 접속할 수 있는 사람(= `DATABASE_URL` 을 가진 사람)은 볼 수 있습니다.
+- 관리자 2인 승인과 감사 로그를 요구하는 break-glass 절차(`reveal_anonymous_author()`)는
+  `supabase/migrations/0002_rls.sql` 에만 있고 **운영 스키마에는 없습니다.**
+
+즉 지금의 익명성은 *애플리케이션과 API 수준*에서 보장되고, *DB 접근 권한을 가진 사람*에
+대해서는 아직 보장되지 않습니다. 온보딩에서 교인들에게 안내할 때 이 선을 넘지 않아야 합니다.
 
 공개 범위는 모임 전체 / 우리 셀 / 리더에게만 세 가지이며, 리더 전용 항목은
 중보자의 목록·상세·트래커·주간 다이제스트·내보내기 어디에도 나타나지 않습니다.
@@ -76,31 +98,24 @@ src/
       leader/export/  주보·카카오톡 내보내기
   lib/
     domain/types.ts   도메인 타입과 익명 표시 규칙
-    db/               Repository 인터페이스 + 로컬 파일 저장소 구현
+    timezone.ts       기준 시간대(미국 서부). 하루 경계와 마감일이 여기를 따른다
+    db/
+      repository.ts   데이터 접근 경계
+      pg/             Postgres 구현 + 스키마 (운영)
+      local-*.ts      파일 저장소 구현 (개발용)
     kakao-parser.ts   카카오톡 대화록 파서
     queue.ts          오늘의 기도 큐 랭킹
     export.ts         내보내기 서식과 제외 규칙
-supabase/migrations/  목표 스키마와 RLS 정책
+scripts/              스키마 적용·데이터 이전·주간 리스트 넣기
+supabase/migrations/  Supabase Auth 기반의 옛 설계. 지금은 쓰지 않는다
 ```
 
-데이터 접근은 전부 `Repository` 인터페이스를 지납니다. Postgres 로 옮길 때
-`src/lib/db/index.ts` 만 갈아끼우면 화면과 서버 액션은 손대지 않습니다.
+데이터 접근은 전부 `Repository` 인터페이스를 지납니다. `DATABASE_URL` 유무에 따라
+`src/lib/db/index.ts` 가 Postgres 와 파일 저장소 중 하나를 고르고, 화면과 서버 액션은
+어느 쪽인지 알지 못합니다.
 
-## 주간 기도제목 리스트 넣기
-
-교회에서 PDF 로 오는 주간 리스트는 JSON 으로 한 번 옮긴 뒤 스크립트로 넣습니다.
-
-```bash
-node scripts/import-list.mjs scripts/data/2026-07-15.json           # 추가
-node scripts/import-list.mjs scripts/data/2026-07-15.json --replace # 같은 출처 교체
-```
-
-실행 전에 저장소를 자동 백업합니다(`.data/golbang.json.<시각>.bak`).
-`긴급 요청 기도` 섹션은 urgency 로, `1month` 같은 기간 표기는 마감일로 옮깁니다.
-해석할 수 없는 기간('직장이 구해질 때까지')은 본문에 그대로 남습니다.
-
-PDF 를 직접 파싱하지 않는 이유는 표 레이아웃이 매주 조금씩 달라지기 때문입니다.
-잘못 읽은 채로 게시되는 것보다, 사람이 한 번 옮기고 스크립트가 반영하는 편이 안전합니다.
+운영 스키마는 `src/lib/db/pg/schema.sql` 입니다. `supabase/migrations/` 는 Supabase Auth 를
+쓰려던 초기 설계라 지금 구조와 맞지 않습니다 — 참고용으로만 남겨 두었습니다.
 
 ## 대화록 파서에 대해
 
@@ -115,18 +130,40 @@ Android(`2026년 7월 28일 오후 9:14, 이름 : 내용`) 포맷을 모두 읽�
 삶을 크게 흔드는 사건(질병 → 재정 → 직장 → 가정 → 자녀 순)을 우선합니다.
 "아멘 함께 기도할게요" 같은 반응은 걸러냅니다.
 
+## 주간 기도제목 리스트 넣기
+
+교회에서 PDF 로 오는 주간 리스트는 JSON 으로 한 번 옮긴 뒤 스크립트로 넣습니다.
+형식은 `scripts/data/example.json` 을 보세요.
+
+```bash
+node --env-file=.env.local scripts/import-list.mjs scripts/data/2026-07-22.json --close-previous
+```
+
+`--close-previous` 는 지난 주 리스트를 '종료'로 내립니다. 매주 새 리스트를 올릴 때 씁니다.
+`긴급 요청 기도` 섹션은 urgency 로, `1month` 같은 기간 표기는 마감일로 옮깁니다.
+해석할 수 없는 기간('직장이 구해질 때까지')은 본문에 그대로 남습니다.
+
+PDF 를 직접 파싱하지 않는 이유는 표 레이아웃이 매주 조금씩 달라지기 때문입니다.
+잘못 읽은 채로 게시되는 것보다, 사람이 한 번 옮기고 스크립트가 반영하는 편이 안전합니다.
+
+자세한 것은 [DEPLOY.md](./DEPLOY.md) 7번.
+
 ## 아직 안 된 것
 
-- **Supabase 연동** — 스키마와 RLS는 `supabase/migrations/` 에 있지만 앱은 아직
-  로컬 파일 저장소만 씁니다. 이전에 있던 Supabase 어댑터는 계정 모델이 바뀌면서
-  스키마와 어긋나 제거했습니다. 되살리려면 `users` 테이블에 `name`/`display_name`을
-  반영하는 마이그레이션과 Supabase Auth 연결이 필요합니다.
-- **다중 프로세스** — 로컬 저장소는 단일 프로세스(`next start` 기본값)를 가정합니다.
-  인스턴스를 늘리려면 Postgres 로 옮겨야 합니다.
+- **익명 작성자 암호화** — 분리 보관은 하지만 평문입니다. Vault 나 애플리케이션 레벨
+  암호화, 그리고 관리자 2인 승인 break-glass 절차가 남아 있습니다. 위 '익명성과 권한' 참고.
+- **기도제목 수정·삭제** — 나눔(댓글)은 고치고 지울 수 있지만 기도제목 본문은 아직입니다.
+  저장소에 `editPrayerBody` 와 `softDeletePrayer` 는 있고 화면만 없습니다.
+- **알림** — 앱을 열어야 소식을 봅니다. 웹 푸시·이메일·알림톡 모두 미구현입니다.
+  당분간은 리더가 내보내기 텍스트를 단톡방에 붙여넣는 경로를 씁니다.
+- **셀(그룹) 운영** — 스키마와 공개범위 판정에 `group_id` 가 있지만 그룹을 만들 화면이
+  없어서 '우리 셀' 공개범위가 사실상 동작하지 않습니다.
 - **게스트 초대 링크** — SQL에 `submit_guest_prayer()` RPC와 토큰 테이블은 있지만
   앱 경로는 없습니다. 지금은 로그인해야 작성할 수 있습니다.
+- **보유 기간 자동 파기** — PRD §8에서 약속한 것(기본 3년, 종료 1년 후 본문 파기)인데
+  `enforce_retention()` 함수만 있고 크론이 붙어 있지 않습니다.
 - **AI 정리** — 파서는 규칙 기반입니다. LLM 요약·병합·마스킹 제안은 다음 단계입니다.
-- 알림(웹 푸시·알림톡), PDF/슬라이드 출력, 셀 다중 그룹 운영.
+- PDF/슬라이드 출력.
 
 ## 성능
 
