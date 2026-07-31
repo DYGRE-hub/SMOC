@@ -134,6 +134,16 @@ function leaderOrOwner(actor: User) {
   return db`and author_id = ${actor.id}`
 }
 
+/**
+ * 기도제목을 고치거나 지울 수 있는 사람인가 — 본인 건이거나 리더 이상.
+ * 상태 변경 권한과 같은 규칙이다.
+ */
+function ownerOrLeader(actor: User) {
+  const db = sql()
+  if (isLeader(actor.role)) return db``
+  return db`and author_id_public = ${actor.id}`
+}
+
 interface EngagementAgg {
   prayer_id: string
   total: string
@@ -367,28 +377,46 @@ export const pgRepository: Repository = {
     return id
   },
 
-  async editPrayerBody(id, body, editor) {
+  async editPrayer(id, patch, editor) {
     const db = sql()
-    const rows = await db<{ body: string; revision_count: number; author_mode: string }[]>`
-      select body, revision_count, author_mode from prayers where id = ${id} limit 1
-    `
-    const existing = rows[0]
-    if (!existing) return
 
-    const nextCount = existing.revision_count + 1
+    // 이전 본문을 리비전으로 남겨야 하므로 먼저 읽는다.
+    const before = await db<{ body: string }[]>`
+      select body from prayers where id = ${id} and deleted_at is null limit 1
+    `
+    if (!before[0]) return false
+
+    // 권한 조건은 UPDATE 의 WHERE 에 함께 건다.
+    // 여기서 한 행도 안 바뀌면 권한이 없는 것이고, 그러면 리비전도 남기지 않는다.
+    const rows = await db<{ revision_count: number; author_mode: string }[]>`
+      update prayers set
+        title = ${patch.title},
+        body = ${patch.body},
+        subject = ${patch.subject},
+        category = ${patch.category},
+        urgency = ${patch.urgency},
+        visibility = ${patch.visibility},
+        pray_until = ${patch.prayUntil},
+        revision_count = revision_count + 1
+      where id = ${id}
+        and deleted_at is null
+        ${ownerOrLeader(editor)}
+      returning revision_count, author_mode
+    `
+    const updated = rows[0]
+    if (!updated) return false
 
     await db`
       insert into prayer_revisions (id, prayer_id, prev_body, editor_id)
-      values (${newId('rev')}, ${id}, ${existing.body}, ${editor.id})
+      values (${newId('rev')}, ${id}, ${before[0].body}, ${editor.id})
     `
-    await db`update prayers set body = ${body}, revision_count = ${nextCount} where id = ${id}`
     await db`
       insert into prayer_updates (id, prayer_id, type, body, author_id, author_display_name)
       values (
         ${newId('up')}, ${id}, 'edit',
-        ${`본문이 수정되었습니다 (${nextCount}회 수정됨)`},
+        ${`내용이 수정되었습니다 (${updated.revision_count}회 수정됨)`},
         ${editor.id},
-        ${displayAuthor(existing.author_mode as Prayer['authorMode'], editor.displayName)}
+        ${displayAuthor(updated.author_mode as Prayer['authorMode'], editor.displayName)}
       )
     `
 
@@ -398,6 +426,7 @@ export const pgRepository: Repository = {
       targetType: 'prayer',
       targetId: id,
     })
+    return true
   },
 
   async addUpdate(prayerId, type, body, actor) {
@@ -512,13 +541,21 @@ export const pgRepository: Repository = {
 
   async softDeletePrayer(prayerId, actor) {
     const db = sql()
-    await db`update prayers set deleted_at = now() where id = ${prayerId}`
+    const rows = await db<{ id: string }[]>`
+      update prayers set deleted_at = now()
+      where id = ${prayerId} and deleted_at is null
+        ${ownerOrLeader(actor)}
+      returning id
+    `
+    if (rows.length === 0) return false
+
     await pgRepository.writeAudit({
       actorId: actor.id,
       action: 'soft_delete',
       targetType: 'prayer',
       targetId: prayerId,
     })
+    return true
   },
 
   async markPrayed(prayerId, user) {

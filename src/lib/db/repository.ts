@@ -38,6 +38,17 @@ export interface CreatePrayerInput {
   source: Prayer['source']
 }
 
+/** 수정 가능한 필드. 작성자 표기는 일부러 빠져 있다. */
+export interface EditPrayerInput {
+  title: string
+  body: string
+  subject: string | null
+  category: Category
+  urgency: boolean
+  visibility: Visibility
+  prayUntil: string | null
+}
+
 export interface PrayerDetail {
   prayer: Prayer
   engagement: EngagementSummary
@@ -95,8 +106,14 @@ export interface Repository {
   getPrayer(viewer: User, id: string): Promise<PrayerDetail | null>
   createPrayer(input: CreatePrayerInput): Promise<string>
 
-  /** 본문 수정. 이전 본문은 revision 으로 스냅샷된다(PRD §4.2). */
-  editPrayerBody(id: string, body: string, editor: User): Promise<void>
+  /**
+   * 기도제목 수정. 본인 건이거나 리더 이상일 때만 통과한다.
+   *
+   * 이전 본문은 revision 으로 스냅샷되고 "n회 수정됨"이 붙는다(PRD §4.2).
+   * 작성자 표기(authorMode)는 여기서 바꿀 수 없다 — 익명으로 올린 사람을
+   * 나중에 기명으로 돌리거나 그 반대로 만드는 길을 열면 안 된다.
+   */
+  editPrayer(id: string, patch: EditPrayerInput, editor: User): Promise<boolean>
 
   addUpdate(
     prayerId: string,
@@ -124,8 +141,11 @@ export interface Repository {
    */
   listComments(viewer: User, prayerId: string, limit: number): Promise<PrayerUpdate[]>
 
-  /** soft delete — 30일간 복구 가능 */
-  softDeletePrayer(prayerId: string, actor: User): Promise<void>
+  /**
+   * soft delete — 30일간 복구 가능. 본인 건이거나 리더 이상만.
+   * 목록에서는 사라지지만 행은 남아 있어 되돌릴 수 있다.
+   */
+  softDeletePrayer(prayerId: string, actor: User): Promise<boolean>
 
   /** 하루 1회. 이미 눌렀으면 아무 일도 하지 않고 현재 상태를 돌려준다. */
   markPrayed(prayerId: string, user: User): Promise<EngagementSummary>

@@ -33,13 +33,25 @@ export default async function PrayerDetailPage({
     <div className="reading-column enter-rise relative py-6">
       <Watermark name={viewer.displayName} />
 
-      <Link
-        href="/prayers"
-        className="inline-flex h-11 items-center gap-1.5 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text"
-      >
-        <Icon name="arrow-left" size={17} />
-        목록
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          href="/prayers"
+          className="inline-flex h-11 items-center gap-1.5 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
+        >
+          <Icon name="arrow-left" size={17} />
+          목록
+        </Link>
+
+        {/* 수정 권한과 상태 변경 권한은 같은 규칙이다 — 본인 건이거나 리더 이상. */}
+        {canChangeStatus ? (
+          <Link
+            href={`/prayers/${prayer.id}/edit`}
+            className="inline-flex h-11 items-center text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70"
+          >
+            수정
+          </Link>
+        ) : null}
+      </div>
 
       {/* 원문은 상단에 고정된다 — 수정해도 덮어쓰지 않는다(PRD §4.2) */}
       <article className="mt-4 flex flex-col gap-4">

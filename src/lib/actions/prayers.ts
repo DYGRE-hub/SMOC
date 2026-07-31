@@ -137,6 +137,87 @@ export async function addUpdateAction(
   return { ok: true }
 }
 
+const editPrayerSchema = z.object({
+  prayerId: z.string().min(1),
+  title: z.string().trim().min(2, '제목을 조금만 더 적어주세요.').max(120),
+  body: z.string().trim().min(2, '내용을 조금만 더 적어주세요.').max(4000),
+  subject: z.string().trim().max(60).optional().or(z.literal('')),
+  category: z.enum(CATEGORIES),
+  visibility: z.enum(VISIBILITIES),
+  urgency: z.coerce.boolean().default(false),
+  prayUntil: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal('')),
+})
+
+/**
+ * 기도제목 수정.
+ *
+ * 작성자 표기(이름 밝히기 / 익명)는 여기서 바꿀 수 없다. 처음 올릴 때 한 번 정하고,
+ * 나중에 뒤집으면 익명으로 올린 사람이 드러나거나 반대로 이미 이름을 보고 기도한
+ * 사람들의 기억과 어긋난다.
+ */
+export async function editPrayerAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const parsed = editPrayerSchema.safeParse({
+    prayerId: formData.get('prayerId'),
+    title: formData.get('title'),
+    body: formData.get('body'),
+    subject: formData.get('subject') ?? undefined,
+    category: formData.get('category'),
+    visibility: formData.get('visibility'),
+    urgency: formData.get('urgency') === 'on',
+    prayUntil: formData.get('prayUntil') ?? undefined,
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' }
+  }
+
+  const input = parsed.data
+  const repo = await getRepository()
+  const done = await repo.editPrayer(
+    input.prayerId,
+    {
+      title: input.title,
+      body: input.body,
+      subject: input.subject ? input.subject : null,
+      category: input.urgency ? 'urgent' : input.category,
+      urgency: input.urgency,
+      visibility: input.visibility,
+      prayUntil: input.prayUntil ? input.prayUntil : null,
+    },
+    user,
+  )
+  if (!done) return { ok: false, error: '이 기도제목을 고칠 권한이 없습니다.' }
+
+  revalidatePath('/')
+  revalidatePath('/prayers')
+  revalidatePath('/tracker')
+  revalidatePath(`/prayers/${input.prayerId}`)
+  redirect(`/prayers/${input.prayerId}`)
+}
+
+export async function deletePrayerAction(prayerId: string): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const repo = await getRepository()
+  const done = await repo.softDeletePrayer(prayerId, user)
+  if (!done) return { ok: false, error: '이 기도제목을 지울 권한이 없습니다.' }
+
+  revalidatePath('/')
+  revalidatePath('/prayers')
+  revalidatePath('/tracker')
+  return { ok: true }
+}
+
 const editCommentSchema = z.object({
   updateId: z.string().min(1),
   body: z.string().trim().min(1, '내용을 입력해 주세요.').max(2000),

@@ -254,10 +254,11 @@ export const localRepository: Repository = {
     return id
   },
 
-  async editPrayerBody(id, body, editor) {
+  async editPrayer(id, patch, editor) {
     const s = state()
     const prayer = s.prayers.find((p) => p.id === id)
-    if (!prayer) return
+    if (!prayer) return false
+    if (!isLeader(editor.role) && prayer.authorIdPublic !== editor.id) return false
 
     s.revisions.push({
       prayerId: id,
@@ -265,7 +266,16 @@ export const localRepository: Repository = {
       editorId: editor.id,
       createdAt: new Date().toISOString(),
     })
-    prayer.body = body
+
+    // 작성자 표기(authorMode)는 건드리지 않는다. 익명으로 올린 사람을
+    // 나중에 기명으로 돌리는 길을 열면 안 된다.
+    prayer.title = patch.title
+    prayer.body = patch.body
+    prayer.subject = patch.subject
+    prayer.category = patch.category
+    prayer.urgency = patch.urgency
+    prayer.visibility = patch.visibility
+    prayer.prayUntil = patch.prayUntil
     prayer.revisionCount += 1
     prayer.updatedAt = new Date().toISOString()
 
@@ -273,7 +283,8 @@ export const localRepository: Repository = {
       id: newId('up'),
       prayerId: id,
       type: 'edit',
-      body: `본문이 수정되었습니다 (${prayer.revisionCount}회 수정됨)`,
+      body: `내용이 수정되었습니다 (${prayer.revisionCount}회 수정됨)`,
+      authorId: editor.id,
       authorDisplayName: displayAuthor(prayer.authorMode, editor.displayName),
       createdAt: new Date().toISOString(),
     })
@@ -285,6 +296,7 @@ export const localRepository: Repository = {
       targetId: id,
     })
     persist()
+    return true
   },
 
   async addUpdate(prayerId, type, body, actor) {
@@ -393,7 +405,10 @@ export const localRepository: Repository = {
   async softDeletePrayer(prayerId, actor) {
     const s = state()
     const idx = s.prayers.findIndex((p) => p.id === prayerId)
-    if (idx < 0) return
+    const prayer = s.prayers[idx]
+    if (idx < 0 || !prayer) return false
+    if (!isLeader(actor.role) && prayer.authorIdPublic !== actor.id) return false
+
     s.prayers.splice(idx, 1)
     await localRepository.writeAudit({
       actorId: actor.id,
@@ -402,6 +417,7 @@ export const localRepository: Repository = {
       targetId: prayerId,
     })
     persist()
+    return true
   },
 
   async markPrayed(prayerId, user) {
