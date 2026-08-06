@@ -1,7 +1,17 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
+import {
+  forwardRef,
+  useActionState,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  useTransition,
+} from 'react'
 
+import { CommentPhoto } from '@/components/CommentPhoto'
 import { Icon } from '@/components/ui/Icon'
 import {
   addUpdateAction,
@@ -10,6 +20,8 @@ import {
   setStatusAction,
 } from '@/lib/actions/prayers'
 import {
+  IMAGE_MAX_EDGE,
+  IMAGE_MIME_TYPES,
   STATUSES,
   STATUS_LABEL,
   type PrayerUpdate,
@@ -41,9 +53,13 @@ interface Props {
 export function CommentSection({ prayerId, updates, currentStatus, canChangeStatus }: Props) {
   const [state, formAction, pending] = useActionState(addUpdateAction, null)
   const formRef = useRef<HTMLFormElement>(null)
+  const photoRef = useRef<PhotoPickerHandle>(null)
 
   useEffect(() => {
-    if (state?.ok) formRef.current?.reset()
+    if (state?.ok) {
+      formRef.current?.reset()
+      photoRef.current?.clear()
+    }
   }, [state])
 
   return (
@@ -69,15 +85,18 @@ export function CommentSection({ prayerId, updates, currentStatus, canChangeStat
         <label htmlFor="comment-body" className="sr-only">
           나눔 남기기
         </label>
+        {/* required 를 걸지 않는다. 사진만 나누는 경우가 있어서다.
+            둘 다 비어 있을 때만 서버가 막는다. */}
         <textarea
           id="comment-body"
           name="body"
           rows={3}
-          required
           maxLength={2000}
           placeholder="함께 기도하며 남기고 싶은 말을 적어 주세요."
           className="w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[16px] leading-[1.7] text-text outline-none placeholder:text-text-tertiary focus:border-accent/50"
         />
+        <PhotoPicker ref={photoRef} />
+
         {state?.error ? (
           <p className="type-caption text-urgent" role="alert">
             {state.error}
@@ -97,6 +116,151 @@ export function CommentSection({ prayerId, updates, currentStatus, canChangeStat
       ) : null}
     </section>
   )
+}
+
+export interface PhotoPickerHandle {
+  clear: () => void
+}
+
+/**
+ * 사진 한 장 고르기.
+ *
+ * 고른 사진은 보내기 전에 브라우저에서 줄인다. 요즘 휴대폰 사진은 한 장에
+ * 3~5MB인데, 그대로 올리면 서버로 가는 길에서 걸리고 데이터도 그만큼 쓴다.
+ * 긴 변 1600px 이면 크게 열어 봐도 충분하고 보통 수백 KB로 내려앉는다.
+ *
+ * 줄인 결과를 다시 input 에 넣어 두는 것은, 폼이 평소처럼 제출되게 하기 위해서다.
+ * 따로 올리는 길을 내면 글과 사진이 따로 놀다가 한쪽만 저장되는 일이 생긴다.
+ */
+const PhotoPicker = forwardRef<PhotoPickerHandle>(function PhotoPicker(_props, ref) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const clear = useCallback(() => {
+    setPreview((url) => {
+      if (url) URL.revokeObjectURL(url)
+      return null
+    })
+    setSize(null)
+    setError(null)
+    if (inputRef.current) inputRef.current.value = ''
+  }, [])
+
+  useImperativeHandle(ref, () => ({ clear }), [clear])
+
+  // 화면을 떠날 때 미리보기로 잡아 둔 자리를 돌려준다.
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
+
+  async function pick(file: File) {
+    setBusy(true)
+    setError(null)
+    try {
+      const shrunk = await shrinkImage(file)
+      const transfer = new DataTransfer()
+      transfer.items.add(shrunk.file)
+      if (inputRef.current) inputRef.current.files = transfer.files
+
+      setPreview((old) => {
+        if (old) URL.revokeObjectURL(old)
+        return URL.createObjectURL(shrunk.file)
+      })
+      setSize({ width: shrunk.width, height: shrunk.height })
+    } catch {
+      setError('이 사진은 읽지 못했습니다. 다른 사진으로 해 보시겠어요?')
+      clear()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <input
+        ref={inputRef}
+        type="file"
+        name="image"
+        accept={IMAGE_MIME_TYPES.join(',')}
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void pick(file)
+        }}
+      />
+      <input type="hidden" name="imageWidth" value={size?.width ?? ''} />
+      <input type="hidden" name="imageHeight" value={size?.height ?? ''} />
+
+      {preview ? (
+        <div className="flex items-start gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt="고른 사진 미리보기"
+            className="max-h-[120px] w-auto rounded-[10px] border border-line object-contain"
+          />
+          <button
+            type="button"
+            onClick={clear}
+            className="type-caption h-9 underline-offset-4 hover:underline active:opacity-70"
+          >
+            사진 빼기
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+          className="inline-flex h-11 w-fit items-center gap-1.5 rounded-[10px] border border-line px-3 text-[14px] text-text-secondary transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text active:opacity-70 disabled:opacity-50"
+        >
+          <Icon name="image" size={17} />
+          {busy ? '사진 준비 중…' : '사진 첨부'}
+        </button>
+      )}
+
+      {error ? (
+        <p className="type-caption text-urgent" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  )
+})
+
+/**
+ * 긴 변을 IMAGE_MAX_EDGE 로 줄이고 JPEG 로 다시 굽는다.
+ * 원본이 이미 작으면 크기는 그대로 두고 형식만 맞춘다.
+ */
+async function shrinkImage(file: File): Promise<{ file: File; width: number; height: number }> {
+  const bitmap = await createImageBitmap(file)
+  const scale = Math.min(1, IMAGE_MAX_EDGE / Math.max(bitmap.width, bitmap.height))
+  const width = Math.max(1, Math.round(bitmap.width * scale))
+  const height = Math.max(1, Math.round(bitmap.height * scale))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas 를 쓸 수 없습니다')
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close()
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.82),
+  )
+  if (!blob) throw new Error('사진을 변환하지 못했습니다')
+
+  return {
+    file: new File([blob], 'photo.jpg', { type: 'image/jpeg' }),
+    width,
+    height,
+  }
 }
 
 /**
@@ -189,6 +353,12 @@ function CommentItem({ update, prayerId }: { update: PrayerUpdate; prayerId: str
     <li className="flex flex-col gap-1.5">
       {meta}
       <p className="type-body whitespace-pre-line text-text">{update.body}</p>
+      {update.image ? (
+        <CommentPhoto
+          image={update.image}
+          alt={`${update.authorDisplayName ?? '익명'} 님이 나눔에 붙인 사진`}
+        />
+      ) : null}
 
       {error ? (
         <p className="type-caption text-urgent" role="alert">

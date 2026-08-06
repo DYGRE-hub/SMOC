@@ -22,9 +22,11 @@ import { sql } from '@/lib/db/pg/client'
 import { pgAccountStore } from '@/lib/db/pg/accounts'
 import { toUser } from '@/lib/db/accounts'
 import type {
+  NewImage,
   PrayerDetail,
   PrayerFilter,
   Repository,
+  StoredImage,
   TrackerDay,
   TrackerSummary,
 } from '@/lib/db/repository'
@@ -92,6 +94,10 @@ interface UpdateRow {
   author_id?: string | null
   author_display_name: string | null
   created_at: Date
+  /** 붙은 사진의 메타. 바이트는 여기 싣지 않는다. */
+  image_id?: string | null
+  image_width?: number | null
+  image_height?: number | null
 }
 
 function toUpdate(row: UpdateRow): PrayerUpdate {
@@ -102,7 +108,22 @@ function toUpdate(row: UpdateRow): PrayerUpdate {
     body: row.body,
     authorDisplayName: row.author_display_name,
     createdAt: row.created_at.toISOString(),
+    image:
+      row.image_id && row.image_width && row.image_height
+        ? { id: row.image_id, width: row.image_width, height: row.image_height }
+        : null,
   }
+}
+
+/** 나눔을 읽는 곳마다 같은 조인을 쓴다. 한 곳만 빠뜨려도 사진이 사라진다. */
+function imageJoin() {
+  const db = sql()
+  return db`left join prayer_update_images i on i.update_id = u.id`
+}
+
+function imageColumns() {
+  const db = sql()
+  return db`i.id as image_id, i.width as image_width, i.height as image_height`
 }
 
 /**
@@ -325,8 +346,11 @@ export const pgRepository: Repository = {
 
     const [updateRows, summaries] = await Promise.all([
       db<UpdateRow[]>`
-        select id, prayer_id, type, body, author_id, author_display_name, created_at
-        from prayer_updates where prayer_id = ${id} order by created_at asc
+        select u.id, u.prayer_id, u.type, u.body, u.author_id, u.author_display_name,
+               u.created_at, ${imageColumns()}
+        from prayer_updates u
+        ${imageJoin()}
+        where u.prayer_id = ${id} order by u.created_at asc
       `,
       summarize([id], viewer),
     ])
@@ -364,9 +388,11 @@ export const pgRepository: Repository = {
     const db = sql()
     // 부모 기도제목이 보이지 않으면 나눔도 보이지 않는다.
     const rows = await db<UpdateRow[]>`
-      select u.id, u.prayer_id, u.type, u.body, u.author_display_name, u.created_at
+      select u.id, u.prayer_id, u.type, u.body, u.author_display_name, u.created_at,
+             ${imageColumns()}
       from prayer_updates u
       join prayers p on p.id = u.prayer_id
+      ${imageJoin()}
       where ${visibleClause(viewer)}
         and u.prayer_id = ${prayerId}
         and u.type in ('comment', 'answer')
@@ -374,6 +400,25 @@ export const pgRepository: Repository = {
       limit ${limit}
     `
     return rows.map(toUpdate).reverse()
+  },
+
+  /**
+   * 사진 한 장의 바이트.
+   *
+   * 사진 id 만으로 꺼내지 않고 부모 기도제목의 열람 규칙을 함께 건다.
+   * 주소만 알면 열리는 자리이므로, 링크가 새어 나가도 볼 수 없는 사람은 볼 수 없어야 한다.
+   */
+  async getUpdateImage(viewer: User, imageId: string): Promise<StoredImage | null> {
+    const db = sql()
+    const rows = await db<{ mime: string; data: Buffer }[]>`
+      select i.mime, i.data
+      from prayer_update_images i
+      join prayer_updates u on u.id = i.update_id
+      join prayers p on p.id = u.prayer_id
+      where ${visibleClause(viewer)} and i.id = ${imageId}
+      limit 1
+    `
+    return rows[0] ?? null
   },
 
   async createPrayer(input) {
@@ -467,7 +512,7 @@ export const pgRepository: Repository = {
     return true
   },
 
-  async addUpdate(prayerId, type, body, actor) {
+  async addUpdate(prayerId, type, body, actor, image) {
     const db = sql()
     const rows = await db<{ author_mode: string; author_id_public: string | null }[]>`
       select author_mode, author_id_public from prayers where id = ${prayerId} limit 1
@@ -481,10 +526,18 @@ export const pgRepository: Repository = {
       ? displayAuthor(prayer.author_mode as Prayer['authorMode'], actor.displayName)
       : actor.displayName
 
+    const updateId = newId('up')
     await db`
       insert into prayer_updates (id, prayer_id, type, body, author_id, author_display_name)
-      values (${newId('up')}, ${prayerId}, ${type}, ${body}, ${actor.id}, ${name})
+      values (${updateId}, ${prayerId}, ${type}, ${body}, ${actor.id}, ${name})
     `
+    if (image) {
+      await db`
+        insert into prayer_update_images (id, update_id, mime, width, height, byte_size, data)
+        values (${newId('img')}, ${updateId}, ${image.mime}, ${image.width},
+                ${image.height}, ${image.data.byteLength}, ${image.data})
+      `
+    }
     await db`update prayers set updated_at = now() where id = ${prayerId}`
 
     await pgRepository.writeAudit({

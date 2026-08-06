@@ -18,6 +18,8 @@ export type IconName =
   | 'download'
   | 'comment'
   | 'arrow-up'
+  | 'image'
+  | 'x'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   check: <polyline points="4 12.5 9 17.5 20 6.5" />,
@@ -93,6 +95,20 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <line x1="12" y1="19" x2="12" y2="5" />
       <polyline points="6 11 12 5 18 11" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M4.5 17.5 9.6 12.9a1.6 1.6 0 0 1 2.2 0L16 17" />
+      <path d="m14 15.2 1.9-1.7a1.6 1.6 0 0 1 2.2 0l1.4 1.3" />
+    </>
+  ),
+  x: (
+    <>
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
     </>
   ),
   comment: (

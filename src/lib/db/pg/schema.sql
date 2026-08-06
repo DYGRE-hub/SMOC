@@ -92,6 +92,28 @@ create table if not exists prayer_updates (
 
 create index if not exists prayer_updates_prayer_idx on prayer_updates (prayer_id, created_at);
 
+/*
+ * 나눔에 붙은 사진.
+ *
+ * 파일을 바깥 저장소에 두지 않고 여기에 담는다. 기도제목에 붙는 사진은
+ * 병상이나 가족 사진일 수 있어서, 링크만 알면 누구나 열리는 자리에 두면 안 된다.
+ * 이 표에 두면 이미 있는 열람 규칙(visible_clause)을 그대로 태울 수 있다.
+ *
+ * 대신 크기를 지켜야 한다. 올리기 전에 브라우저에서 줄이고, 서버에서 한 번 더 막는다.
+ */
+create table if not exists prayer_update_images (
+  id         text primary key,
+  update_id  text not null references prayer_updates (id) on delete cascade,
+  mime       text not null check (mime in ('image/jpeg', 'image/png', 'image/webp')),
+  width      integer not null,
+  height     integer not null,
+  byte_size  integer not null,
+  data       bytea not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists prayer_update_images_update_idx on prayer_update_images (update_id);
+
 create table if not exists prayer_revisions (
   id         text primary key,
   prayer_id  text not null references prayers (id) on delete cascade,
@@ -206,7 +228,7 @@ declare
   t text;
   tables text[] := array[
     'accounts', 'prayers', 'prayer_author_private', 'prayer_updates',
-    'prayer_revisions', 'prayer_engagements', 'daily_missions',
+    'prayer_revisions', 'prayer_engagements', 'daily_missions', 'prayer_update_images',
     'audit_logs', 'imports', 'import_drafts'
   ];
   has_supabase_roles boolean;

@@ -95,6 +95,17 @@ export interface DailyMission {
  */
 export type StoredUpdate = PrayerUpdate & { authorId?: string | null }
 
+/**
+ * 사진 바이트. 개발용 파일 저장소라 base64 로 담는다.
+ * 운영(Postgres)에서는 bytea 로 들어간다 — 여기서 흉내만 낸다.
+ */
+export interface StoredImage {
+  id: string
+  updateId: string
+  mime: string
+  base64: string
+}
+
 interface StoreState {
   version: number
   sessionSecret: string
@@ -102,6 +113,7 @@ interface StoreState {
   accounts: Account[]
   prayers: Prayer[]
   updates: StoredUpdate[]
+  images: StoredImage[]
   engagements: Engagement[]
   revisions: Revision[]
   /** 익명 요청의 실제 작성자. 읽기 함수를 만들지 않는다. */
@@ -123,6 +135,7 @@ function emptyState(): StoreState {
     accounts: [],
     prayers: [],
     updates: [],
+    images: [],
     engagements: [],
     revisions: [],
     authorPrivate: {},

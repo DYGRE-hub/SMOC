@@ -134,6 +134,25 @@ export interface Prayer {
   revisionCount: number
 }
 
+/**
+ * 나눔에 붙은 사진. 바이트는 여기 담지 않는다.
+ *
+ * 화면은 /api/images/{id} 로 따로 받아 간다. 목록을 그릴 때마다 사진까지
+ * 함께 실려 오면 첫 화면이 무거워지고, 정작 열어 보지도 않을 사진을 매번 나른다.
+ * 가로·세로를 함께 주는 것은 자리를 미리 잡아 두어 그림이 뜰 때 글이 밀리지 않게 하려고다.
+ */
+export interface PrayerUpdateImage {
+  id: string
+  width: number
+  height: number
+}
+
+/** 사진 한 장이 넘을 수 없는 크기. 브라우저에서 줄이고 서버에서 한 번 더 막는다. */
+export const IMAGE_MAX_BYTES = 3 * 1024 * 1024
+/** 올리기 전에 줄여 둘 긴 변의 길이. 휴대폰 화면에서 크게 봐도 충분하다. */
+export const IMAGE_MAX_EDGE = 1600
+export const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+
 export interface PrayerUpdate {
   id: string
   prayerId: string
@@ -141,6 +160,8 @@ export interface PrayerUpdate {
   body: string
   authorDisplayName: string | null
   createdAt: string
+  /** 붙은 사진. 없으면 null. */
+  image?: PrayerUpdateImage | null
   /**
    * 지금 보는 사람이 이 나눔을 고치거나 지울 수 있는가.
    *

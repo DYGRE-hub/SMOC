@@ -9,11 +9,14 @@ import { getCurrentUser } from '@/lib/auth/session'
 import {
   AUTHOR_MODES,
   CATEGORIES,
+  IMAGE_MAX_BYTES,
+  IMAGE_MIME_TYPES,
   isLeader,
   STATUSES,
   VISIBILITIES,
   type Status,
 } from '@/lib/domain/types'
+import type { NewImage } from '@/lib/db/repository'
 
 const createSchema = z.object({
   title: z.string().trim().min(2, '제목을 조금만 더 적어주세요.').max(120),
@@ -115,6 +118,44 @@ const updateSchema = z.object({
   body: z.string().trim().min(1, '내용을 입력해 주세요.').max(2000),
 })
 
+/**
+ * 폼으로 올라온 사진 한 장을 저장할 수 있는 모양으로 바꾼다.
+ *
+ * 브라우저가 이미 줄여서 보내지만 그 말을 믿지 않는다. 브라우저를 거치지 않고
+ * 직접 부르는 길이 늘 열려 있으므로, 형식과 크기는 여기서 다시 본다.
+ */
+async function readImage(
+  formData: FormData,
+): Promise<{ image: NewImage | null; error?: string }> {
+  const value = formData.get('image')
+  if (!value || typeof value === 'string') return { image: null }
+  const file = value
+  if (file.size === 0) return { image: null }
+
+  if (!IMAGE_MIME_TYPES.includes(file.type as (typeof IMAGE_MIME_TYPES)[number])) {
+    return { image: null, error: '사진은 JPG, PNG, WEBP 만 올릴 수 있습니다.' }
+  }
+  if (file.size > IMAGE_MAX_BYTES) {
+    return { image: null, error: '사진이 너무 큽니다. 조금 더 작은 사진으로 올려 주세요.' }
+  }
+
+  // 가로·세로는 자리를 미리 잡는 데만 쓴다. 값이 틀려도 비율만 어긋나므로
+  // 믿을 수 없는 값이 와도 위험하지 않다. 다만 터무니없는 수는 잘라 둔다.
+  const edge = (raw: FormDataEntryValue | null) => {
+    const n = Math.round(Number(raw))
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 10_000) : 1
+  }
+
+  return {
+    image: {
+      mime: file.type,
+      width: edge(formData.get('imageWidth')),
+      height: edge(formData.get('imageHeight')),
+      data: Buffer.from(await file.arrayBuffer()),
+    },
+  }
+}
+
 export async function addUpdateAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -122,17 +163,22 @@ export async function addUpdateAction(
   const user = await getCurrentUser()
   if (!user) return { ok: false, error: '로그인이 필요합니다.' }
 
+  const { image, error: imageError } = await readImage(formData)
+  if (imageError) return { ok: false, error: imageError }
+
   const parsed = updateSchema.safeParse({
     prayerId: formData.get('prayerId'),
-    body: formData.get('body'),
+    // 사진만 올리는 경우도 있다. 그때는 본문을 비워 둘 수 있게 한다.
+    body: image ? (formData.get('body') || '사진을 나눕니다.') : formData.get('body'),
   })
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' }
   }
 
   const repo = await getRepository()
-  await repo.addUpdate(parsed.data.prayerId, 'comment', parsed.data.body, user)
+  await repo.addUpdate(parsed.data.prayerId, 'comment', parsed.data.body, user, image)
 
+  revalidatePath('/')
   revalidatePath(`/prayers/${parsed.data.prayerId}`)
   return { ok: true }
 }

@@ -213,6 +213,18 @@ export const localRepository: Repository = {
       .reverse()
   },
 
+  /** 부모 기도제목을 볼 수 없으면 사진도 볼 수 없다. Postgres 쪽과 같은 규칙이다. */
+  async getUpdateImage(viewer: User, imageId: string) {
+    const s = state()
+    const image = s.images.find((img) => img.id === imageId)
+    if (!image) return null
+    const update = s.updates.find((u) => u.id === image.updateId)
+    if (!update) return null
+    const prayer = s.prayers.find((p) => p.id === update.prayerId)
+    if (!prayer || prayer.churchId !== viewer.churchId || !canSee(viewer, prayer)) return null
+    return { mime: image.mime, data: Buffer.from(image.base64, 'base64') }
+  },
+
   async createPrayer(input) {
     const s = state()
     const id = newId('p')
@@ -299,7 +311,7 @@ export const localRepository: Repository = {
     return true
   },
 
-  async addUpdate(prayerId, type, body, actor) {
+  async addUpdate(prayerId, type, body, actor, image) {
     const s = state()
     const prayer = s.prayers.find((p) => p.id === prayerId)
     if (!prayer) return
@@ -311,8 +323,10 @@ export const localRepository: Repository = {
       ? displayAuthor(prayer.authorMode, actor.displayName)
       : actor.displayName
 
+    const updateId = newId('up')
+    const imageId = image ? newId('img') : null
     s.updates.push({
-      id: newId('up'),
+      id: updateId,
       prayerId,
       type,
       body,
@@ -320,7 +334,19 @@ export const localRepository: Repository = {
       authorId: actor.id,
       authorDisplayName: name,
       createdAt: new Date().toISOString(),
+      image:
+        image && imageId
+          ? { id: imageId, width: image.width, height: image.height }
+          : null,
     })
+    if (image && imageId) {
+      s.images.push({
+        id: imageId,
+        updateId,
+        mime: image.mime,
+        base64: image.data.toString('base64'),
+      })
+    }
     prayer.updatedAt = new Date().toISOString()
 
     await localRepository.writeAudit({
@@ -359,6 +385,8 @@ export const localRepository: Repository = {
     if (!isLeader(actor.role) && update.authorId !== actor.id) return false
 
     s.updates.splice(index, 1)
+    // Postgres 는 on delete cascade 가 대신 해 준다. 파일 저장소는 직접 치운다.
+    s.images = s.images.filter((img) => img.updateId !== updateId)
     // 타임라인에서는 사라지지만 지운 사실은 기록에 남는다.
     await localRepository.writeAudit({
       actorId: actor.id,

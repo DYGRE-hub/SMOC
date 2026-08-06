@@ -35,6 +35,19 @@ export interface PrayerFilter {
   sort?: PrayerSort
 }
 
+/** 새로 올라온 사진 한 장. 이미 줄여 둔 바이트가 들어온다. */
+export interface NewImage {
+  mime: string
+  width: number
+  height: number
+  data: Buffer
+}
+
+export interface StoredImage {
+  mime: string
+  data: Buffer
+}
+
 export interface CreatePrayerInput {
   churchId: string
   groupId: string | null
@@ -135,7 +148,16 @@ export interface Repository {
     type: PrayerUpdate['type'],
     body: string,
     actor: User,
+    image?: NewImage | null,
   ): Promise<void>
+
+  /**
+   * 나눔 사진의 실제 바이트. 볼 수 없는 기도제목의 사진이면 null.
+   *
+   * 판정을 부르는 쪽에 맡기지 않고 여기서 함께 한다. 사진은 주소만 알면
+   * 열리는 자리라, 열람 규칙을 한 군데서만 걸어 두면 언젠가 빠뜨린다.
+   */
+  getUpdateImage(viewer: User, imageId: string): Promise<StoredImage | null>
 
   /**
    * 나눔(댓글) 수정. 본인 글이거나 리더 이상일 때만 통과한다.
