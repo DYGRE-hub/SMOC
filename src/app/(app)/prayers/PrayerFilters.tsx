@@ -100,7 +100,9 @@ export function PrayerFilters({ initialQuery, category, status, urgentOnly, sort
             긴급만
           </Chip>
           <span className="mx-1 h-5 w-px bg-line" aria-hidden />
-          {STATUSES.map((s) => (
+          {/* '응답됨'은 여기 없다. 응답된 기도는 목록을 떠나 응답 화면으로 간다.
+              목록에 없는 것을 고르는 칸을 남겨 두면 눌러 보고 빈 화면을 만난다. */}
+          {STATUSES.filter((s) => s !== 'answered').map((s) => (
             <Chip
               key={s}
               active={status === s}

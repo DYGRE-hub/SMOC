@@ -304,6 +304,7 @@ export const pgRepository: Repository = {
         ${filter?.category ? db`and p.category = ${filter.category}` : db``}
         ${filter?.status ? db`and p.status = ${filter.status}` : db``}
         ${filter?.urgentOnly ? db`and ${urgentNowClause()}` : db``}
+        ${filter?.hideAnswered ? db`and p.status <> 'answered'` : db``}
         ${q ? db`and (p.title ilike ${`%${q}%`} or p.body ilike ${`%${q}%`})` : db``}
       order by ${urgentNowClause()} desc, ${secondaryOrder(sort)}
     `

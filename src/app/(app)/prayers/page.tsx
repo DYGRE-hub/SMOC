@@ -52,6 +52,10 @@ export default async function PrayersPage({
     status,
     urgentOnly: params.urgent === '1',
     sort,
+    // 응답된 기도는 여기 남지 않는다. 응답 화면으로 옮겨 간다.
+    // 다만 예전 링크로 ?status=answered 를 열고 온 사람에게까지 빈 목록을
+    // 내밀지는 않는다 — 대놓고 응답된 것을 찾아온 경우다.
+    hideAnswered: status !== 'answered',
   })
 
   return (
@@ -78,8 +82,20 @@ export default async function PrayersPage({
         />
       </div>
 
-      <p className="type-caption mt-6" aria-live="polite">
-        {items.length}개의 기도제목
+      {/* 응답된 건이 목록에서 사라진 것을 두고 "내 기도가 없어졌다" 고 여기지 않도록
+          어디로 갔는지 같은 줄에서 알려 준다. */}
+      <p className="type-caption mt-6 flex flex-wrap items-center gap-x-2" aria-live="polite">
+        <span>{items.length}개의 기도제목</span>
+        <span aria-hidden className="text-text-tertiary/60">
+          ·
+        </span>
+        <Link
+          prefetch={false}
+          href="/archive"
+          className="text-text-secondary underline-offset-4 transition-colors duration-200 ease-[var(--ease-quiet)] hover:text-text hover:underline"
+        >
+          응답된 기도는 응답에 있습니다
+        </Link>
       </p>
 
       {items.length > 0 ? (

@@ -67,6 +67,7 @@ function applyFilter(items: PrayerWithEngagement[], filter?: PrayerFilter) {
   if (filter.category) out = out.filter(({ prayer }) => prayer.category === filter.category)
   if (filter.status) out = out.filter(({ prayer }) => prayer.status === filter.status)
   if (filter.urgentOnly) out = out.filter(({ prayer }) => isUrgentNow(prayer))
+  if (filter.hideAnswered) out = out.filter(({ prayer }) => prayer.status !== 'answered')
   return out
 }
 
