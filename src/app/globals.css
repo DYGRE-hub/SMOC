@@ -192,6 +192,24 @@
     margin-inline: auto;
     padding-inline: 20px;
   }
+
+  /*
+   * 헤더 브랜드 로고는 앱의 수동 테마 설정을 따른다.
+   *
+   * 감추고 드러내는 일을 전부 여기서 한다. 한쪽을 Tailwind 의 hidden 으로
+   * 감춰 두면 어두울 때 로고가 아예 사라진다 — hidden 은 utilities 레이어에
+   * 있고, 레이어는 선택자 우선순위보다 세다. 그래서 아무리 구체적으로 써도
+   * 여기서 다시 드러낼 수가 없다. 세 줄을 한 레이어에 모아 둔 이유다.
+   */
+  .header-logo-dark {
+    display: none;
+  }
+  :root[data-theme='dark'] .header-logo-light {
+    display: none;
+  }
+  :root[data-theme='dark'] .header-logo-dark {
+    display: block;
+  }
 }
 
 @layer utilities {

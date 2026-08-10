@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 import { Icon } from '@/components/ui/Icon'
@@ -26,10 +27,27 @@ export function AppHeader({
         <Link
           prefetch={false}
           href="/"
-          className="text-[17px] font-semibold tracking-[-0.01em] text-text"
+          className="inline-flex h-11 shrink-0 items-center transition-opacity duration-200 ease-[var(--ease-quiet)] hover:opacity-70 active:opacity-60"
           aria-label={`${APP_NAME} 홈`}
         >
-          {APP_NAME}
+          <Image
+            src="/branding/smoc-prayer-logo-v2.png"
+            alt=""
+            width={413}
+            height={128}
+            priority
+            aria-hidden="true"
+            className="header-logo-light h-[30px] w-auto"
+          />
+          <Image
+            src="/branding/smoc-prayer-logo-v2-dark.png"
+            alt=""
+            width={413}
+            height={128}
+            priority
+            aria-hidden="true"
+            className="header-logo-dark h-[30px] w-auto"
+          />
         </Link>
 
         <nav className="flex items-center gap-1" aria-label="보조 메뉴">
