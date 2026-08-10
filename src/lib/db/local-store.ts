@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { dirname, join } from 'node:path'
 
-import type { Prayer, PrayerUpdate } from '@/lib/domain/types'
+import type { Prayer, PrayerRequest, PrayerUpdate } from '@/lib/domain/types'
 import { dateKey } from '@/lib/timezone'
 import type { AccountRecord } from '@/lib/db/accounts'
 
@@ -114,6 +114,7 @@ interface StoreState {
   prayers: Prayer[]
   updates: StoredUpdate[]
   images: StoredImage[]
+  requests: PrayerRequest[]
   engagements: Engagement[]
   revisions: Revision[]
   /** 익명 요청의 실제 작성자. 읽기 함수를 만들지 않는다. */
@@ -136,6 +137,7 @@ function emptyState(): StoreState {
     prayers: [],
     updates: [],
     images: [],
+    requests: [],
     engagements: [],
     revisions: [],
     authorPrivate: {},

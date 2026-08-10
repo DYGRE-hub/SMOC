@@ -114,6 +114,43 @@ create table if not exists prayer_update_images (
 
 create index if not exists prayer_update_images_update_idx on prayer_update_images (update_id);
 
+/*
+ * 밖에서 들어온 기도 요청.
+ *
+ * prayers 에 바로 넣지 않고 표를 따로 둔다. 로그인 없이 누구나 올릴 수 있는
+ * 자리라, 같은 표에 담아 두면 어느 조회 하나가 상태 거르기를 빠뜨리는 날
+ * 검토도 받지 않은 글이 목록에 뜬다. 표가 다르면 그런 실수가 아예 불가능하다.
+ *
+ * 리더가 확인하고 손본 뒤에야 prayers 로 옮겨 간다.
+ */
+create table if not exists prayer_requests (
+  id                  text primary key,
+  church_id           text not null,
+  title               text not null,
+  body                text not null,
+  subject             text,
+  category            text not null default 'church',
+  urgency             boolean not null default false,
+  -- 올린 사람은 앱 계정이 아니다. 리더가 확인할 때만 쓴다.
+  requester_name      text,
+  requester_contact   text,
+  anonymous           boolean not null default false,
+  status              text not null default 'pending'
+                        check (status in ('pending', 'published', 'declined')),
+  published_prayer_id text references prayers (id) on delete set null,
+  handled_by          text references accounts (id) on delete set null,
+  handled_at          timestamptz,
+  note                text,
+  -- 한 사람이 쏟아붓는 것을 막기 위한 표시. 주소 자체는 담지 않는다.
+  source_hash         text,
+  created_at          timestamptz not null default now()
+);
+
+create index if not exists prayer_requests_status_idx
+  on prayer_requests (church_id, status, created_at desc);
+create index if not exists prayer_requests_source_idx
+  on prayer_requests (source_hash, created_at desc);
+
 create table if not exists prayer_revisions (
   id         text primary key,
   prayer_id  text not null references prayers (id) on delete cascade,
@@ -229,6 +266,7 @@ declare
   tables text[] := array[
     'accounts', 'prayers', 'prayer_author_private', 'prayer_updates',
     'prayer_revisions', 'prayer_engagements', 'daily_missions', 'prayer_update_images',
+    'prayer_requests',
     'audit_logs', 'imports', 'import_drafts'
   ];
   has_supabase_roles boolean;

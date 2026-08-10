@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { Icon } from '@/components/ui/Icon'
 import { APP_NAME } from '@/lib/env'
-import type { User } from '@/lib/domain/types'
+import { isLeader, type User } from '@/lib/domain/types'
 
 /**
  * 헤더는 최대한 물러서 있어야 한다.
@@ -12,7 +12,14 @@ import type { User } from '@/lib/domain/types'
  * 가려면 맨 위까지 되돌아 올라가야 했다. 대신 배경을 반투명으로 덮어
  * 글이 헤더 밑으로 지나가는 것이 보이게 둔다 — 가리는 게 아니라 얹혀 있다.
  */
-export function AppHeader({ user }: { user: User }) {
+export function AppHeader({
+  user,
+  pendingRequests = 0,
+}: {
+  user: User
+  /** 아직 처리하지 않은 기도 요청 수. 리더에게만 뜬다. */
+  pendingRequests?: number
+}) {
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur-sm">
       <div className="reading-column flex h-14 items-center justify-between">
@@ -27,6 +34,21 @@ export function AppHeader({ user }: { user: User }) {
 
         <nav className="flex items-center gap-1" aria-label="보조 메뉴">
           <HeaderLink href="/archive">응답</HeaderLink>
+          {/*
+            기도 요청함은 리더 이상에게만 보인다.
+            기다리는 건수를 함께 띄우는 것은 들여다볼 이유를 만들기 위해서다 —
+            밖에서 부탁한 분은 아무도 모르는 채로 기다리고 있다.
+          */}
+          {isLeader(user.role) ? (
+            <HeaderLink href="/requests">
+              기도요청
+              {pendingRequests > 0 ? (
+                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgent px-1.5 text-[11px] font-medium text-white">
+                  {pendingRequests}
+                </span>
+              ) : null}
+            </HeaderLink>
+          ) : null}
           {/* 관리 화면은 관리자로 지정된 사용자에게만 보인다. */}
           {user.role === 'admin' ? <HeaderLink href="/admin">관리</HeaderLink> : null}
           <Link

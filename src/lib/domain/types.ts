@@ -174,6 +174,41 @@ export interface PrayerUpdate {
   editable?: boolean
 }
 
+/**
+ * 밖에서 들어온 기도 요청.
+ *
+ * 아직 기도제목이 아니다. 리더가 읽고 손본 뒤에 목록으로 옮겨야 비로소 기도제목이 된다.
+ */
+export const REQUEST_STATUSES = ['pending', 'published', 'declined'] as const
+export type RequestStatus = (typeof REQUEST_STATUSES)[number]
+
+export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
+  pending: '기다리는 중',
+  published: '목록에 올림',
+  declined: '올리지 않음',
+}
+
+export interface PrayerRequest {
+  id: string
+  churchId: string
+  title: string
+  body: string
+  subject: string | null
+  category: Category
+  urgency: boolean
+  /** 올린 분이 남긴 이름. 익명을 고르면 비어 있다. */
+  requesterName: string | null
+  /** 리더가 확인할 때만 쓰는 연락처. 목록에는 보이지 않는다. */
+  requesterContact: string | null
+  anonymous: boolean
+  status: RequestStatus
+  publishedPrayerId: string | null
+  handledBy: string | null
+  handledAt: string | null
+  note: string | null
+  createdAt: string
+}
+
 export interface EngagementSummary {
   /** 누적 총계 */
   total: number

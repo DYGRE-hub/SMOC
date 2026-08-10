@@ -13,8 +13,10 @@ import {
   type EngagementSummary,
   type Prayer,
   type PrayerUpdate,
+  type PrayerRequest,
   type PrayerSort,
   type PrayerWithEngagement,
+  type RequestStatus,
   type User,
 } from '@/lib/domain/types'
 import { buildTodayQueue } from '@/lib/queue'
@@ -22,11 +24,13 @@ import { sql } from '@/lib/db/pg/client'
 import { pgAccountStore } from '@/lib/db/pg/accounts'
 import { toUser } from '@/lib/db/accounts'
 import type {
+  CreateRequestInput,
   NewImage,
   PrayerDetail,
   PrayerFilter,
   Repository,
   StoredImage,
+  EditPrayerInput,
   TrackerDay,
   TrackerSummary,
 } from '@/lib/db/repository'
@@ -112,6 +116,46 @@ function toUpdate(row: UpdateRow): PrayerUpdate {
       row.image_id && row.image_width && row.image_height
         ? { id: row.image_id, width: row.image_width, height: row.image_height }
         : null,
+  }
+}
+
+interface RequestRow {
+  id: string
+  church_id: string
+  title: string
+  body: string
+  subject: string | null
+  category: string
+  urgency: boolean
+  requester_name: string | null
+  requester_contact: string | null
+  anonymous: boolean
+  status: string
+  published_prayer_id: string | null
+  handled_by: string | null
+  handled_at: Date | null
+  note: string | null
+  created_at: Date
+}
+
+function toRequest(row: RequestRow): PrayerRequest {
+  return {
+    id: row.id,
+    churchId: row.church_id,
+    title: row.title,
+    body: row.body,
+    subject: row.subject,
+    category: row.category as PrayerRequest['category'],
+    urgency: row.urgency,
+    requesterName: row.requester_name,
+    requesterContact: row.requester_contact,
+    anonymous: row.anonymous,
+    status: row.status as RequestStatus,
+    publishedPrayerId: row.published_prayer_id,
+    handledBy: row.handled_by,
+    handledAt: row.handled_at ? row.handled_at.toISOString() : null,
+    note: row.note,
+    createdAt: row.created_at.toISOString(),
   }
 }
 
@@ -400,6 +444,139 @@ export const pgRepository: Repository = {
       limit ${limit}
     `
     return rows.map(toUpdate).reverse()
+  },
+
+  /* ── 밖에서 들어온 기도 요청 ─────────────────────────────── */
+
+  async defaultChurchId() {
+    const db = sql()
+    const rows = await db<{ church_id: string }[]>`
+      select church_id from accounts order by created_at asc limit 1
+    `
+    return rows[0]?.church_id ?? 'smoc'
+  },
+
+  async createRequest(input: CreateRequestInput) {
+    const db = sql()
+    const id = newId('req')
+    await db`
+      insert into prayer_requests
+        (id, church_id, title, body, subject, category, urgency,
+         requester_name, requester_contact, anonymous, source_hash)
+      values
+        (${id}, ${input.churchId}, ${input.title}, ${input.body}, ${input.subject},
+         ${input.category}, ${input.urgency}, ${input.requesterName},
+         ${input.requesterContact}, ${input.anonymous}, ${input.sourceHash})
+    `
+    return id
+  },
+
+  async countRecentRequests(sourceHash, sinceMinutes) {
+    const db = sql()
+    const rows = await db<{ n: number }[]>`
+      select count(*)::int as n from prayer_requests
+      where source_hash = ${sourceHash}
+        and created_at >= now() - make_interval(mins => ${sinceMinutes})
+    `
+    return rows[0]?.n ?? 0
+  },
+
+  async listRequests(viewer, status) {
+    if (!isLeader(viewer.role)) return []
+    const db = sql()
+    const rows = await db<RequestRow[]>`
+      select * from prayer_requests
+      where church_id = ${viewer.churchId}
+        ${status ? db`and status = ${status}` : db``}
+      order by
+        case when status = 'pending' then 0 else 1 end,
+        created_at desc
+    `
+    return rows.map(toRequest)
+  },
+
+  async getRequest(viewer, id) {
+    if (!isLeader(viewer.role)) return null
+    const db = sql()
+    const rows = await db<RequestRow[]>`
+      select * from prayer_requests
+      where id = ${id} and church_id = ${viewer.churchId} limit 1
+    `
+    return rows[0] ? toRequest(rows[0]) : null
+  },
+
+  async countPendingRequests(viewer) {
+    if (!isLeader(viewer.role)) return 0
+    const db = sql()
+    const rows = await db<{ n: number }[]>`
+      select count(*)::int as n from prayer_requests
+      where church_id = ${viewer.churchId} and status = 'pending'
+    `
+    return rows[0]?.n ?? 0
+  },
+
+  async publishRequest(id: string, patch: EditPrayerInput, actor: User) {
+    if (!isLeader(actor.role)) return null
+    const db = sql()
+
+    // 아직 기다리는 중인 건만 집는다. 두 리더가 동시에 눌러도
+    // 조건이 걸린 update 를 통과한 쪽만 실제로 옮긴다.
+    const claimed = await db<RequestRow[]>`
+      update prayer_requests
+      set status = 'published', handled_by = ${actor.id}, handled_at = now()
+      where id = ${id} and church_id = ${actor.churchId} and status = 'pending'
+      returning *
+    `
+    const request = claimed[0]
+    if (!request) return null
+
+    const prayerId = await pgRepository.createPrayer({
+      churchId: actor.churchId,
+      groupId: null,
+      title: patch.title,
+      body: patch.body,
+      subject: patch.subject,
+      category: patch.urgency ? 'urgent' : patch.category,
+      urgency: patch.urgency,
+      visibility: patch.visibility,
+      // 올린 분은 앱 계정이 아니다. 이름을 남겼으면 그 이름으로, 아니면 익명으로 선다.
+      authorMode: request.anonymous || !request.requester_name ? 'anonymous' : 'named',
+      authorId: null,
+      authorDisplayName: request.anonymous ? null : request.requester_name,
+      prayUntil: patch.prayUntil,
+      source: 'guest_link',
+    })
+
+    await db`
+      update prayer_requests set published_prayer_id = ${prayerId} where id = ${id}
+    `
+    await pgRepository.writeAudit({
+      actorId: actor.id,
+      action: 'publish_request',
+      targetType: 'prayer_request',
+      targetId: id,
+      meta: { prayerId },
+    })
+    return prayerId
+  },
+
+  async declineRequest(id, actor, note) {
+    if (!isLeader(actor.role)) return false
+    const db = sql()
+    const rows = await db<{ id: string }[]>`
+      update prayer_requests
+      set status = 'declined', handled_by = ${actor.id}, handled_at = now(), note = ${note}
+      where id = ${id} and church_id = ${actor.churchId} and status = 'pending'
+      returning id
+    `
+    if (!rows[0]) return false
+    await pgRepository.writeAudit({
+      actorId: actor.id,
+      action: 'decline_request',
+      targetType: 'prayer_request',
+      targetId: id,
+    })
+    return true
   },
 
   /**

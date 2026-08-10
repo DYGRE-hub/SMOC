@@ -15,15 +15,28 @@ import {
   type User,
 } from '@/lib/domain/types'
 import { buildTodayQueue } from '@/lib/queue'
-import { newId, persist, state, type ImportDraft } from '@/lib/db/local-store'
+import {
+  DEFAULT_CHURCH_ID,
+  newId,
+  persist,
+  state,
+  type ImportDraft,
+} from '@/lib/db/local-store'
 import { toUser } from '@/lib/db/accounts'
 import type {
+  CreateRequestInput,
   PrayerDetail,
   PrayerFilter,
   Repository,
   TrackerDay,
   TrackerSummary,
 } from '@/lib/db/repository'
+
+/**
+ * 요청이 어디서 왔는지 표시. 개발용 저장소에서는 파일에 남기지 않는다 —
+ * 쏟아붓기를 막는 데만 쓰는 값이라 서버가 살아 있는 동안만 있으면 된다.
+ */
+const sourceHashes = new Map<string, string | null>()
 
 /** 오늘의 미션 크기. 너무 많으면 미션이 아니라 숙제가 된다. */
 const MISSION_SIZE = 6
@@ -211,6 +224,134 @@ export const localRepository: Repository = {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, limit)
       .reverse()
+  },
+
+  /* ── 밖에서 들어온 기도 요청 ─────────────────────────────── */
+
+  async defaultChurchId() {
+    return state().accounts[0]?.churchId ?? DEFAULT_CHURCH_ID
+  },
+
+  async createRequest(input: CreateRequestInput) {
+    const s = state()
+    const id = newId('req')
+    s.requests.push({
+      id,
+      churchId: input.churchId,
+      title: input.title,
+      body: input.body,
+      subject: input.subject,
+      category: input.category,
+      urgency: input.urgency,
+      requesterName: input.requesterName,
+      requesterContact: input.requesterContact,
+      anonymous: input.anonymous,
+      status: 'pending',
+      publishedPrayerId: null,
+      handledBy: null,
+      handledAt: null,
+      note: null,
+      createdAt: new Date().toISOString(),
+    })
+    // 쏟아붓기 판정에만 쓰는 값이라 화면으로 나가는 타입에는 두지 않는다.
+    sourceHashes.set(id, input.sourceHash)
+    persist()
+    return id
+  },
+
+  async countRecentRequests(sourceHash, sinceMinutes) {
+    const since = Date.now() - sinceMinutes * 60_000
+    return state().requests.filter(
+      (r) =>
+        sourceHashes.get(r.id) === sourceHash && new Date(r.createdAt).getTime() >= since,
+    ).length
+  },
+
+  async listRequests(viewer, status) {
+    if (!isLeader(viewer.role)) return []
+    return state()
+      .requests.filter(
+        (r) => r.churchId === viewer.churchId && (!status || r.status === status),
+      )
+      .sort(
+        (a, b) =>
+          Number(a.status !== 'pending') - Number(b.status !== 'pending') ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+  },
+
+  async getRequest(viewer, id) {
+    if (!isLeader(viewer.role)) return null
+    const found = state().requests.find((r) => r.id === id)
+    return found && found.churchId === viewer.churchId ? found : null
+  },
+
+  async countPendingRequests(viewer) {
+    if (!isLeader(viewer.role)) return 0
+    return state().requests.filter(
+      (r) => r.churchId === viewer.churchId && r.status === 'pending',
+    ).length
+  },
+
+  async publishRequest(id, patch, actor) {
+    if (!isLeader(actor.role)) return null
+    const s = state()
+    const request = s.requests.find((r) => r.id === id)
+    if (!request || request.churchId !== actor.churchId || request.status !== 'pending') {
+      return null
+    }
+
+    request.status = 'published'
+    request.handledBy = actor.id
+    request.handledAt = new Date().toISOString()
+
+    const prayerId = await localRepository.createPrayer({
+      churchId: actor.churchId,
+      groupId: null,
+      title: patch.title,
+      body: patch.body,
+      subject: patch.subject,
+      category: patch.urgency ? 'urgent' : patch.category,
+      urgency: patch.urgency,
+      visibility: patch.visibility,
+      authorMode: request.anonymous || !request.requesterName ? 'anonymous' : 'named',
+      authorId: null,
+      authorDisplayName: request.anonymous ? null : request.requesterName,
+      prayUntil: patch.prayUntil,
+      source: 'guest_link',
+    })
+    request.publishedPrayerId = prayerId
+
+    await localRepository.writeAudit({
+      actorId: actor.id,
+      action: 'publish_request',
+      targetType: 'prayer_request',
+      targetId: id,
+      meta: { prayerId },
+    })
+    persist()
+    return prayerId
+  },
+
+  async declineRequest(id, actor, note) {
+    if (!isLeader(actor.role)) return false
+    const s = state()
+    const request = s.requests.find((r) => r.id === id)
+    if (!request || request.churchId !== actor.churchId || request.status !== 'pending') {
+      return false
+    }
+    request.status = 'declined'
+    request.handledBy = actor.id
+    request.handledAt = new Date().toISOString()
+    request.note = note
+    await localRepository.writeAudit({
+      actorId: actor.id,
+      action: 'decline_request',
+      targetType: 'prayer_request',
+      targetId: id,
+    })
+    persist()
+    return true
   },
 
   /** 부모 기도제목을 볼 수 없으면 사진도 볼 수 없다. Postgres 쪽과 같은 규칙이다. */

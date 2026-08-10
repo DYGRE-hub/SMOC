@@ -1,5 +1,7 @@
 import type {
   Category,
+  PrayerRequest,
+  RequestStatus,
   EngagementSummary,
   Prayer,
   PrayerSort,
@@ -33,6 +35,20 @@ export interface PrayerFilter {
    * 목록을 정렬하는 의미가 없다.
    */
   sort?: PrayerSort
+}
+
+/** 밖에서 들어온 요청 한 건. 로그인 없이 만들어지므로 담기는 값이 적다. */
+export interface CreateRequestInput {
+  churchId: string
+  title: string
+  body: string
+  subject: string | null
+  category: Category
+  urgency: boolean
+  requesterName: string | null
+  requesterContact: string | null
+  anonymous: boolean
+  sourceHash: string | null
 }
 
 /** 새로 올라온 사진 한 장. 이미 줄여 둔 바이트가 들어온다. */
@@ -150,6 +166,36 @@ export interface Repository {
     actor: User,
     image?: NewImage | null,
   ): Promise<void>
+
+  /* ── 밖에서 들어온 기도 요청 ─────────────────────────────── */
+
+  /**
+   * 교회 id. 로그인하지 않은 사람이 요청을 올릴 때 쓴다.
+   *
+   * 환경변수를 하나 더 두지 않고 이미 있는 계정에서 읽는다. 교회는 하나뿐이고,
+   * 설정 파일이 늘수록 배포할 때 빠뜨릴 자리도 함께 는다.
+   */
+  defaultChurchId(): Promise<string>
+
+  /** 로그인 없이 부른다. 보는 눈이 없으므로 여기서는 아무것도 돌려주지 않는다. */
+  createRequest(input: CreateRequestInput): Promise<string>
+
+  /** 같은 곳에서 최근 몇 건이나 들어왔는지. 쏟아붓기를 막는 데만 쓴다. */
+  countRecentRequests(sourceHash: string, sinceMinutes: number): Promise<number>
+
+  listRequests(viewer: User, status: RequestStatus | null): Promise<PrayerRequest[]>
+  getRequest(viewer: User, id: string): Promise<PrayerRequest | null>
+  countPendingRequests(viewer: User): Promise<number>
+
+  /**
+   * 요청을 기도제목으로 옮긴다. 리더 이상만.
+   * 옮겨진 요청은 published 로 잠기고 같은 건이 두 번 올라가지 않는다.
+   * 성공하면 새로 생긴 기도제목 id, 권한이 없거나 이미 처리된 건이면 null.
+   */
+  publishRequest(id: string, patch: EditPrayerInput, actor: User): Promise<string | null>
+
+  /** 올리지 않기로 한 요청. 지우지 않고 기록으로 남긴다. */
+  declineRequest(id: string, actor: User, note: string | null): Promise<boolean>
 
   /**
    * 나눔 사진의 실제 바이트. 볼 수 없는 기도제목의 사진이면 null.
