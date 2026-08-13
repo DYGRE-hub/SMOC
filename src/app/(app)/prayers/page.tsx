@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { PrayerRow } from '@/components/PrayerRow'
+import { ScrollMemory } from '@/components/ScrollMemory'
 import { PrayerFilters } from '@/app/(app)/prayers/PrayerFilters'
 import { Icon } from '@/components/ui/Icon'
 import { getCurrentUser } from '@/lib/auth/session'
@@ -45,6 +46,16 @@ export default async function PrayersPage({
     ? (params.sort as PrayerSort)
     : DEFAULT_PRAYER_SORT
 
+  // 상세로 들어갔다가 돌아올 때 같은 순서를 따라가도록 조건을 그대로 물려 준다.
+  // 보던 자리를 기억하는 열쇠이기도 하다 — 조건이 바뀌면 다른 목록이므로 맨 위에서 시작한다.
+  const listQuery = new URLSearchParams()
+  if (params.q) listQuery.set('q', params.q)
+  if (category) listQuery.set('category', category)
+  if (status) listQuery.set('status', status)
+  if (params.urgent === '1') listQuery.set('urgent', '1')
+  if (sort !== DEFAULT_PRAYER_SORT) listQuery.set('sort', sort)
+  const queryString = listQuery.toString()
+
   const repo = await getRepository()
   const items = await repo.listPrayers(viewer, {
     q: params.q,
@@ -60,6 +71,7 @@ export default async function PrayersPage({
 
   return (
     <div className="reading-column enter-rise py-10">
+      <ScrollMemory storageKey={`prayers?${queryString}`} />
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="type-title text-text">기도제목</h1>
         <Link
@@ -101,7 +113,7 @@ export default async function PrayersPage({
       {items.length > 0 ? (
         <ul className="mt-2 border-t border-line">
           {items.map((item) => (
-            <PrayerRow key={item.prayer.id} item={item} />
+            <PrayerRow key={item.prayer.id} item={item} listQuery={queryString} />
           ))}
         </ul>
       ) : (
