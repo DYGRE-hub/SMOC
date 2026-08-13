@@ -362,3 +362,87 @@ export async function setStatusAction(
   revalidatePath(`/prayers/${parsed.data.prayerId}`)
   return { ok: true }
 }
+
+const headUpdateSchema = z.object({
+  prayerId: z.string().min(1),
+  body: z.string().trim().min(2, '업데이트 내용을 조금만 더 적어주세요.').max(4000),
+})
+
+/**
+ * 원문 위에 소식을 얹는다.
+ *
+ * 나눔과 나누어 둔 이유가 있다. 나눔은 곁에서 보태는 말이고, 이것은 부탁한 사람이
+ * 사정이 달라졌을 때 요청 자체를 고쳐 쓰는 자리다. 그래서 권한도 더 좁다 —
+ * 올린 본인과 리더 이상만. 원문은 덮어쓰지 않고 그 위에 쌓는다.
+ */
+export async function addHeadUpdateAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const parsed = headUpdateSchema.safeParse({
+    prayerId: formData.get('prayerId'),
+    body: formData.get('body'),
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' }
+  }
+
+  const repo = await getRepository()
+  const done = await repo.addHeadUpdate(parsed.data.prayerId, parsed.data.body, user)
+  if (!done) return { ok: false, error: '이 기도제목에 업데이트를 올릴 권한이 없습니다.' }
+
+  revalidatePath('/')
+  revalidatePath('/prayers')
+  revalidatePath(`/prayers/${parsed.data.prayerId}`)
+  return { ok: true }
+}
+
+const editHeadUpdateSchema = z.object({
+  updateId: z.string().min(1),
+  prayerId: z.string().min(1),
+  body: z.string().trim().min(2, '업데이트 내용을 조금만 더 적어주세요.').max(4000),
+})
+
+export async function editHeadUpdateAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const parsed = editHeadUpdateSchema.safeParse({
+    updateId: formData.get('updateId'),
+    prayerId: formData.get('prayerId'),
+    body: formData.get('body'),
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' }
+  }
+
+  const repo = await getRepository()
+  const done = await repo.editHeadUpdate(parsed.data.updateId, parsed.data.body, user)
+  if (!done) return { ok: false, error: '이 업데이트를 고칠 권한이 없습니다.' }
+
+  revalidatePath(`/prayers/${parsed.data.prayerId}`)
+  return { ok: true }
+}
+
+export async function deleteHeadUpdateAction(
+  updateId: string,
+  prayerId: string,
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  const repo = await getRepository()
+  const done = await repo.deleteHeadUpdate(updateId, user)
+  if (!done) return { ok: false, error: '이 업데이트를 지울 권한이 없습니다.' }
+
+  revalidatePath('/')
+  revalidatePath('/prayers')
+  revalidatePath(`/prayers/${prayerId}`)
+  return { ok: true }
+}

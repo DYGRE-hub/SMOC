@@ -1,5 +1,6 @@
 import type {
   Category,
+  PrayerHeadUpdate,
   PrayerRequest,
   RequestStatus,
   EngagementSummary,
@@ -97,6 +98,8 @@ export interface PrayerDetail {
   prayer: Prayer
   engagement: EngagementSummary
   updates: PrayerUpdate[]
+  /** 원문 위에 얹힌 업데이트. 새것이 위로 온다. */
+  headUpdates: PrayerHeadUpdate[]
 }
 
 /** 감사 로그 한 줄 (PRD §4.2, §8) */
@@ -166,6 +169,18 @@ export interface Repository {
     actor: User,
     image?: NewImage | null,
   ): Promise<void>
+
+  /* ── 원문 위 업데이트 ───────────────────────────────────── */
+
+  /**
+   * 원문 위에 소식을 얹는다. 올린 본인이거나 리더 이상만.
+   *
+   * 상태 변경·수정과 같은 규칙이다. 남의 기도제목 본문을 고쳐 쓰는 일이므로
+   * 나눔보다 좁게 잡는다 — 곁에서 보태는 말은 나눔에 남기면 된다.
+   */
+  addHeadUpdate(prayerId: string, body: string, actor: User): Promise<boolean>
+  editHeadUpdate(updateId: string, body: string, actor: User): Promise<boolean>
+  deleteHeadUpdate(updateId: string, actor: User): Promise<boolean>
 
   /* ── 밖에서 들어온 기도 요청 ─────────────────────────────── */
 

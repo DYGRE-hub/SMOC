@@ -32,6 +32,18 @@ import type {
   TrackerSummary,
 } from '@/lib/db/repository'
 
+
+/** Postgres 쪽 canEditHead 와 같은 규칙이다. 한쪽만 고치면 두 저장소가 갈린다. */
+function canEditHead(
+  viewer: User,
+  prayerOwnerId: string | null,
+  updateAuthorId: string | null,
+): boolean {
+  if (isLeader(viewer.role)) return true
+  if (prayerOwnerId && prayerOwnerId === viewer.id) return true
+  return Boolean(updateAuthorId && updateAuthorId === viewer.id)
+}
+
 /**
  * 요청이 어디서 왔는지 표시. 개발용 저장소에서는 파일에 남기지 않는다 —
  * 쏟아붓기를 막는 데만 쓰는 값이라 서버가 살아 있는 동안만 있으면 된다.
@@ -196,9 +208,17 @@ export const localRepository: Repository = {
       })
     }
 
+    const heads = state()
+      .headUpdates.filter((h) => h.prayerId === prayer.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
     return {
       prayer,
       engagement: summarize(prayer.id, viewer.id),
+      headUpdates: heads.map(({ authorId, ...head }) => ({
+        ...head,
+        editable: canEditHead(viewer, prayer.authorIdPublic, authorId),
+      })),
       updates: state()
         .updates.filter((u) => u.prayerId === id)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -224,6 +244,60 @@ export const localRepository: Repository = {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, limit)
       .reverse()
+  },
+
+
+  async addHeadUpdate(prayerId, body, actor) {
+    const s = state()
+    const prayer = s.prayers.find((p) => p.id === prayerId)
+    if (!prayer || prayer.churchId !== actor.churchId || !canSee(actor, prayer)) return false
+    if (!isLeader(actor.role) && prayer.authorIdPublic !== actor.id) return false
+
+    s.headUpdates.push({
+      id: newId('hu'),
+      prayerId,
+      body,
+      authorId: actor.id,
+      createdAt: new Date().toISOString(),
+    })
+    prayer.updatedAt = new Date().toISOString()
+    await localRepository.writeAudit({
+      actorId: actor.id,
+      action: 'add_head_update',
+      targetType: 'prayer',
+      targetId: prayerId,
+    })
+    persist()
+    return true
+  },
+
+  async editHeadUpdate(updateId, body, actor) {
+    const s = state()
+    const head = s.headUpdates.find((h) => h.id === updateId)
+    if (!head) return false
+    const prayer = s.prayers.find((p) => p.id === head.prayerId)
+    if (!canEditHead(actor, prayer?.authorIdPublic ?? null, head.authorId)) return false
+    head.body = body
+    persist()
+    return true
+  },
+
+  async deleteHeadUpdate(updateId, actor) {
+    const s = state()
+    const index = s.headUpdates.findIndex((h) => h.id === updateId)
+    const head = s.headUpdates[index]
+    if (index < 0 || !head) return false
+    const prayer = s.prayers.find((p) => p.id === head.prayerId)
+    if (!canEditHead(actor, prayer?.authorIdPublic ?? null, head.authorId)) return false
+    s.headUpdates.splice(index, 1)
+    await localRepository.writeAudit({
+      actorId: actor.id,
+      action: 'delete_head_update',
+      targetType: 'prayer_head_update',
+      targetId: updateId,
+    })
+    persist()
+    return true
   },
 
   /* ── 밖에서 들어온 기도 요청 ─────────────────────────────── */

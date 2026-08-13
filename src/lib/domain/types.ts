@@ -135,6 +135,21 @@ export interface Prayer {
 }
 
 /**
+ * 원문 위에 얹는 업데이트.
+ *
+ * 나눔과 다르다. 나눔은 곁에서 보태는 말이고, 이것은 부탁한 사람이 사정이
+ * 달라졌을 때 요청 자체를 고쳐 쓰는 자리다. 그래서 본문 위에 붙는다.
+ */
+export interface PrayerHeadUpdate {
+  id: string
+  prayerId: string
+  body: string
+  createdAt: string
+  /** 지금 보는 사람이 이것을 고치거나 지울 수 있는가. 서버가 판정해 내려 준다. */
+  editable?: boolean
+}
+
+/**
  * 나눔에 붙은 사진. 바이트는 여기 담지 않는다.
  *
  * 화면은 /api/images/{id} 로 따로 받아 간다. 목록을 그릴 때마다 사진까지

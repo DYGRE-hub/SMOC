@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { PrayerPager, type PagerNeighbor } from '@/app/(app)/prayers/[id]/PrayerPager'
 import { CommentSection } from '@/components/CommentSection'
+import { HeadUpdates } from '@/components/HeadUpdates'
 import { MetaLine } from '@/components/PrayerMeta'
 import { PrayedButton, TodayCompanions } from '@/components/PrayedButton'
 import { Watermark } from '@/components/Watermark'
@@ -81,7 +82,7 @@ export default async function PrayerDetailPage({
   if (listSort !== DEFAULT_PRAYER_SORT) listQuery.set('sort', listSort)
   const queryString = listQuery.toString()
 
-  const { prayer, engagement, updates } = detail
+  const { prayer, engagement, updates, headUpdates } = detail
   const canChangeStatus = isLeader(viewer.role) || prayer.authorIdPublic === viewer.id
 
   return (
@@ -114,6 +115,19 @@ export default async function PrayerDetailPage({
         {/* 원문은 상단에 고정된다 — 수정해도 덮어쓰지 않는다(PRD §4.2) */}
         <article className="mt-4 flex flex-col gap-4">
           <h1 className="type-title text-text">{prayer.title}</h1>
+
+          {/*
+            새 소식은 원문 위에 쌓인다. 부탁한 분이 본문 맨 앞에 직접
+            "[Update] 8/13" 을 적고 줄을 그어 오시던 것을 화면이 대신 맡는다.
+          */}
+          {headUpdates.length > 0 || canChangeStatus ? (
+            <HeadUpdates
+              prayerId={prayer.id}
+              updates={headUpdates}
+              canAdd={canChangeStatus}
+            />
+          ) : null}
+
           {prayer.body ? (
             <p className="type-body whitespace-pre-line text-text">{prayer.body}</p>
           ) : null}

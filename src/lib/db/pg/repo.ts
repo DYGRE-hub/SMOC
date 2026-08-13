@@ -13,6 +13,7 @@ import {
   type EngagementSummary,
   type Prayer,
   type PrayerUpdate,
+  type PrayerHeadUpdate,
   type PrayerRequest,
   type PrayerSort,
   type PrayerWithEngagement,
@@ -233,6 +234,35 @@ function leaderOrOwner(actor: User) {
 }
 
 /**
+ * 원문 위 업데이트를 고치거나 지울 수 있는 사람인가.
+ *
+ * 기도제목 주인이거나, 그 업데이트를 직접 올린 사람이거나, 리더 이상.
+ * 리더가 대신 얹어 준 소식을 주인이 정리할 수 있어야 하고, 그 반대도 마찬가지다.
+ */
+function canEditHead(
+  viewer: User,
+  prayerOwnerId: string | null,
+  updateAuthorId: string | null,
+): boolean {
+  if (isLeader(viewer.role)) return true
+  if (prayerOwnerId && prayerOwnerId === viewer.id) return true
+  return Boolean(updateAuthorId && updateAuthorId === viewer.id)
+}
+
+/** 위 판정을 SQL 로 옮긴 것. 읽고 나서 쓰는 사이의 틈을 만들지 않는다. */
+function headOwnerClause(actor: User) {
+  const db = sql()
+  if (isLeader(actor.role)) return db``
+  return db`and (
+    u.author_id = ${actor.id}
+    or exists (
+      select 1 from prayers p
+      where p.id = u.prayer_id and p.author_id_public = ${actor.id}
+    )
+  )`
+}
+
+/**
  * 기도제목을 고치거나 지울 수 있는 사람인가 — 본인 건이거나 리더 이상.
  * 상태 변경 권한과 같은 규칙이다.
  */
@@ -388,13 +418,17 @@ export const pgRepository: Repository = {
     if (!row) return null
     const prayer = toPrayer(row)
 
-    const [updateRows, summaries] = await Promise.all([
+    const [updateRows, headRows, summaries] = await Promise.all([
       db<UpdateRow[]>`
         select u.id, u.prayer_id, u.type, u.body, u.author_id, u.author_display_name,
                u.created_at, ${imageColumns()}
         from prayer_updates u
         ${imageJoin()}
         where u.prayer_id = ${id} order by u.created_at asc
+      `,
+      db<{ id: string; prayer_id: string; body: string; author_id: string | null; created_at: Date }[]>`
+        select id, prayer_id, body, author_id, created_at
+        from prayer_head_updates where prayer_id = ${id} order by created_at desc
       `,
       summarize([id], viewer),
     ])
@@ -418,6 +452,14 @@ export const pgRepository: Repository = {
         viewerPrayedToday: false,
         recentCount: 0,
       },
+      // 원문 위 업데이트. 고칠 수 있는 사람은 올린 본인과 리더 이상이다.
+      headUpdates: headRows.map((row) => ({
+        id: row.id,
+        prayerId: row.prayer_id,
+        body: row.body,
+        createdAt: row.created_at.toISOString(),
+        editable: canEditHead(viewer, prayer.authorIdPublic, row.author_id),
+      })),
       // author_id 는 여기서만 쓰고 밖으로 나가지 않는다(익명 보호).
       updates: updateRows.map((row) => ({
         ...toUpdate(row),
@@ -444,6 +486,59 @@ export const pgRepository: Repository = {
       limit ${limit}
     `
     return rows.map(toUpdate).reverse()
+  },
+
+
+  async addHeadUpdate(prayerId, body, actor) {
+    const db = sql()
+    // 기도제목의 주인인지 먼저 본다. 볼 수 없는 건에는 얹을 수도 없다.
+    const rows = await db<{ author_id_public: string | null }[]>`
+      select p.author_id_public from prayers p
+      where ${visibleClause(actor)} and p.id = ${prayerId} limit 1
+    `
+    const owner = rows[0]
+    if (!owner) return false
+    if (!isLeader(actor.role) && owner.author_id_public !== actor.id) return false
+
+    await db`
+      insert into prayer_head_updates (id, prayer_id, body, author_id)
+      values (${newId('hu')}, ${prayerId}, ${body}, ${actor.id})
+    `
+    await db`update prayers set updated_at = now() where id = ${prayerId}`
+    await pgRepository.writeAudit({
+      actorId: actor.id,
+      action: 'add_head_update',
+      targetType: 'prayer',
+      targetId: prayerId,
+    })
+    return true
+  },
+
+  async editHeadUpdate(updateId, body, actor) {
+    const db = sql()
+    const rows = await db<{ id: string }[]>`
+      update prayer_head_updates u set body = ${body}
+      where u.id = ${updateId} ${headOwnerClause(actor)}
+      returning u.id
+    `
+    return Boolean(rows[0])
+  },
+
+  async deleteHeadUpdate(updateId, actor) {
+    const db = sql()
+    const rows = await db<{ id: string }[]>`
+      delete from prayer_head_updates u
+      where u.id = ${updateId} ${headOwnerClause(actor)}
+      returning u.id
+    `
+    if (!rows[0]) return false
+    await pgRepository.writeAudit({
+      actorId: actor.id,
+      action: 'delete_head_update',
+      targetType: 'prayer_head_update',
+      targetId: updateId,
+    })
+    return true
   },
 
   /* ── 밖에서 들어온 기도 요청 ─────────────────────────────── */

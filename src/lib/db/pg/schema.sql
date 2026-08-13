@@ -115,6 +115,27 @@ create table if not exists prayer_update_images (
 create index if not exists prayer_update_images_update_idx on prayer_update_images (update_id);
 
 /*
+ * 원문 위에 얹는 업데이트.
+ *
+ * prayer_updates(나눔·타임라인)와 다른 것이다. 저쪽은 "함께 기도했습니다" 처럼
+ * 곁에서 보태는 말이고, 이쪽은 부탁한 사람이 사정이 달라졌을 때 요청 자체를
+ * 고쳐 쓰는 자리다. 그래서 나눔이 아니라 본문 위에 붙는다.
+ *
+ * 원문을 덮어쓰지 않는 이유는 PRD §4.2 그대로다. 처음 어떤 마음으로 부탁했는지가
+ * 남아 있어야 나중에 응답을 견줄 수 있다. 새 소식은 위로 쌓고 원문은 맨 아래에 둔다.
+ */
+create table if not exists prayer_head_updates (
+  id         text primary key,
+  prayer_id  text not null references prayers (id) on delete cascade,
+  body       text not null,
+  author_id  text references accounts (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists prayer_head_updates_prayer_idx
+  on prayer_head_updates (prayer_id, created_at desc);
+
+/*
  * 밖에서 들어온 기도 요청.
  *
  * prayers 에 바로 넣지 않고 표를 따로 둔다. 로그인 없이 누구나 올릴 수 있는
@@ -266,7 +287,7 @@ declare
   tables text[] := array[
     'accounts', 'prayers', 'prayer_author_private', 'prayer_updates',
     'prayer_revisions', 'prayer_engagements', 'daily_missions', 'prayer_update_images',
-    'prayer_requests',
+    'prayer_requests', 'prayer_head_updates',
     'audit_logs', 'imports', 'import_drafts'
   ];
   has_supabase_roles boolean;
