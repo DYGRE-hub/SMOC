@@ -752,7 +752,9 @@ export const pgRepository: Repository = {
         urgency = ${patch.urgency},
         visibility = ${patch.visibility},
         pray_until = ${patch.prayUntil},
-        revision_count = revision_count + 1
+        revision_count = revision_count + 1,
+        -- 고쳐 쓴 것도 새 소식이다. 오늘 화면이 이 시각으로 줄을 세운다.
+        updated_at = now()
       where id = ${id}
         and deleted_at is null
         ${ownerOrLeader(editor)}
